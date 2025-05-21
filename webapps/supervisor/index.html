@@ -10,36 +10,49 @@
            background-color: #f0f2f5; color: #333; }
     h2 { text-align:center; }
     label { display:block; margin:1rem 0 .25rem; color:#555; font-weight:bold; }
-    input, button { width:100%; padding:.5rem; box-sizing:border-box; }
+    input, textarea, button { width:100%; padding:.5rem; box-sizing:border-box; }
     input[readonly] { background:#eee; }
+    textarea { min-height:4rem; margin-bottom:1rem; }
     button { margin-top:1rem; background:#28a745; color:#fff; border:none;
              border-radius:6px; cursor:pointer; }
     button.reject { background:#dc3545; }
   </style>
   <script>
-    // Inicializa WebApp y tema
+    // Inicializa WebApp de Telegram y aplica tema
     const tg = window.Telegram?.WebApp;
     tg?.ready();
-    // 1) Rellenar ID desde querystring ?reportId=...
-    window.addEventListener('DOMContentLoaded', ()=>{
-      const p = new URLSearchParams(location.search);
+    tg?.onEvent('themeChanged', () => {});
+
+    // 1) Prefill del ID desde querystring ?reportId=...
+    window.addEventListener('DOMContentLoaded', () => {
+      const p = new URLSearchParams(window.location.search);
       const id = p.get('reportId');
-      if(id) document.getElementById('reportId').value = id;
+      if (id) document.getElementById('reportId').value = id;
     });
 
-    // 2) Función genérica para enviar aprobación o rechazo
+    // 2) Función genérica para enviar aprobación o rechazo con fecha y motivo
     async function sendDecision(decision) {
+      const motivoEl = document.getElementById('motivo');
+      const motivo = motivoEl?.value.trim() || '';
+      if (decision === 'reject' && !motivo) {
+        alert('Por favor, justifica el motivo de rechazo.');
+        return;
+      }
       const form = new FormData();
       form.append('reportId', document.getElementById('reportId').value);
       form.append('decision', decision);
+      if (decision === 'reject') form.append('motivo', motivo);
+      // Fecha ISO sin ms
+      const fecha = new Date().toISOString().slice(0,19);
+      form.append('fecha', fecha);
       try {
         const res = await fetch('https://hook.us2.make.com/nxhvctirgwkv31qbochatl8i9rc9clav', {
-          method:'POST', body: form
+          method: 'POST', body: form
         });
-        if(!res.ok) throw new Error(res.statusText);
-        alert('✅ ' + (decision==='approve' ? 'Aprobado' : 'Rechazado'));
+        if (!res.ok) throw new Error(res.statusText);
+        alert('✅ ' + (decision === 'approve' ? 'Aprobado' : 'Rechazado'));
         window.close();
-      } catch(err) {
+      } catch (err) {
         console.error(err);
         alert('❌ Error al enviar');
       }
@@ -51,7 +64,14 @@
   <label>ID del Reporte</label>
   <input id="reportId" type="text" readonly />
 
+  <label>Comentarios del Supervisor:</label>
+  <textarea id="comentariosSupervisor" disabled placeholder="Opcional, solo para tu referencia..."></textarea>
+
+  <label>Motivo de rechazo (si aplica):</label>
+  <textarea id="motivo" placeholder="Describe el motivo de rechazo..."></textarea>
+
   <button onclick="sendDecision('approve')">✅ Aprobar</button>
   <button class="reject" onclick="sendDecision('reject')">🔄 Rechazar y reenviar</button>
 </body>
 </html>
+
