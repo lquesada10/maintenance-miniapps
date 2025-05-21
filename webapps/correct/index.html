@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>✏️ Corregir Reporte</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+      --secondary-text: #555555;
+      --input-bg: #ffffff;
+      --border-color: #cccccc;
+      --button-bg: #0088cc;
+      --button-text: #ffffff;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: sans-serif;
+      padding: 1rem;
+      max-width: 500px;
+      margin: auto;
+    }
+    h2 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+      color: var(--secondary-text);
+    }
+    input, textarea {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.5rem;
+      box-sizing: border-box;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+    }
+    textarea { min-height: 5rem; }
+    button {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background-color: var(--button-bg);
+      color: var(--button-text);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+  </style>
+  <script>
+    // — Inicializa Telegram WebApp y tema dinámico —
+    const tg = window.Telegram?.WebApp;
+    tg?.onEvent('themeChanged', applyTheme);
+    tg?.ready();
+    function applyTheme() {
+      const th = tg.themeParams;
+      document.documentElement.style.setProperty('--bg-color', th.bg_color || th.background_color || '#ffffff');
+      document.documentElement.style.setProperty('--text-color', th.text_color || '#000000');
+      document.documentElement.style.setProperty('--secondary-text', th.hint_color || '#555555');
+      document.documentElement.style.setProperty('--input-bg', th.bg_color || '#ffffff');
+      document.documentElement.style.setProperty('--border-color', th.hint_color || '#cccccc');
+      document.documentElement.style.setProperty('--button-bg', th.button_color || '#0088cc');
+      document.documentElement.style.setProperty('--button-text', th.button_text_color || '#ffffff');
+    }
+
+    // — Prefill del reportId desde la querystring —
+    document.addEventListener('DOMContentLoaded', () => {
+      applyTheme();
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('reportId');
+      if (id) {
+        const f = document.getElementById('reportId');
+        f.value = id;
+        f.readOnly = true;
+      }
+    });
+
+    // — Compresión de imágenes —
+    function compressImage(file, maxWidth = 1200, quality = 0.7) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxWidth / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => {
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          }, 'image/jpeg', quality);
+        };
+        const reader = new FileReader();
+        reader.onload = e => img.src = e.target.result;
+        reader.readAsDataURL(file);
+      });
+    }
+    async function compressVideo(file) {
+      // por simplicidad, envío video tal cual
+      return file;
+    }
+
+    // — Envío de la corrección —
+    async function sendCorrection(e) {
+      e.preventDefault();
+
+      const fd = new FormData();
+      // 1) Fecha ISO
+      fd.append('fecha', new Date().toISOString());
+      // 2) ID de reporte
+      fd.append('reportId', document.getElementById('reportId').value);
+      // 3) Texto de corrección
+      fd.append('correccion', document.getElementById('correccion').value);
+
+      // 4) Archivos (hasta 6)
+      const files = Array.from(document.getElementById('evidencia').files);
+      if (files.length > 6) {
+        alert('Máximo 6 archivos.');
+        return;
+      }
+      for (let file of files) {
+        if (file.type.startsWith('image/')) {
+          fd.append('evidencia', await compressImage(file));
+        } else {
+          fd.append('evidencia', await compressVideo(file));
+        }
+      }
+
+      // 5) POST al webhook de Make
+      try {
+        const res = await fetch(
+          'https://hook.us2.make.com/tu_hook_de_correccion_aquí',
+          { method: 'POST', body: fd }
+        );
+        if (!res.ok) throw new Error(res.statusText);
+        alert('✅ Corrección enviada');
+        window.close();
+      } catch (err) {
+        console.error(err);
+        alert('❌ Error al enviar. Revisa la consola.');
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <h2>✏️ Corregir Reporte</h2>
+  <form onsubmit="sendCorrection(event)">
+    <label for="reportId">ID del Reporte</label>
+    <input id="reportId" type="text" readonly />
+
+    <label for="correccion">Detalle de la corrección:</label>
+    <textarea id="correccion" required placeholder="Describe los cambios o ajustes…"></textarea>
+
+    <label for="evidencia">Evidencia (imágenes/videos, máx. 6 archivos):</label>
+    <input id="evidencia" type="file" multiple accept="image/*,video/*" />
+
+    <button type="submit">Enviar Corrección</button>
+  </form>
+</body>
+</html>
