@@ -112,14 +112,22 @@
       return file;
     }
 
-    // 4) Envío del formulario al webhook de Make
+    // 4) Envío del formulario al webhook de Make, incluyendo fecha local
     async function atenderReporte(event) {
       event.preventDefault();
       const formData = new FormData();
-      ['id', 'costo', 'comentarios'].forEach(k =>
+
+      // campos estándar
+      ['id','costo','comentarios'].forEach(k =>
         formData.append(k, document.getElementById(k).value)
       );
 
+      // ➕ agregar fecha local
+      const ahoraLocal = new Date().toLocaleString();
+      formData.append('fecha', ahoraLocal);
+      // ej. "21/5/2025, 12:45:17"
+
+      // anexar archivos (imágenes y videos)
       const files = Array.from(document.getElementById('evidencia').files);
       if (files.length > 6) {
         alert('Máximo 6 archivos.');
@@ -133,6 +141,7 @@
         }
       }
 
+      // envío a Make
       try {
         const res = await fetch('https://hook.us2.make.com/mthoenuwnpf4uwgkca2aofkrdefh7fxs', {
           method: 'POST',
@@ -177,6 +186,7 @@
   </form>
 </body>
 </html>
+
 
 
 
