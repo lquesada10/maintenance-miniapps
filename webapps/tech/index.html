@@ -6,16 +6,17 @@
   <title>🔧 Atender Reporte</title>
   <style>
     body { font-family: sans-serif; padding: 1rem; max-width: 500px; margin: auto; }
-    label { font-weight: bold; }
-    input, textarea, select, button { width: 100%; margin-top: 0.25rem; }
+    label { font-weight: bold; margin-top: 1rem; display: block; }
+    input, textarea, select, button { width: 100%; margin-top: 0.25rem; padding: 0.5rem; }
     textarea { min-height: 5rem; }
-    button { margin-top: 1rem; }
+    button { margin-top: 1rem; padding: 0.75rem; background-color: #0088cc; color: white; border: none; border-radius: 6px; }
+    button:hover { background-color: #0077b3; }
   </style>
 </head>
 <body>
   <h2>⚙️ Atender Reporte</h2>
   <form id="form" onsubmit="atenderReporte(event)">
-    <!-- 1) Campo ID (se rellena solo) -->
+    <!-- 1) Campo ID (se rellena solo y es readonly) -->
     <label for="id">ID interno:</label>
     <input id="id" name="id" type="text" placeholder="se rellena solo" readonly />
     
@@ -29,19 +30,20 @@
 
     <!-- 4) Evidencia (hasta 6 archivos) -->
     <label for="evidencia">Evidencia (hasta 6 archivos):</label>
-    <input id="evidencia" name="evidencia" type="file" multiple />
+    <input id="evidencia" name="evidencia" type="file" multiple accept="image/*,video/*,application/pdf" />
 
     <button type="submit">Enviar actualización</button>
   </form>
 
   <script>
-    // ----- 1) Pré-fill del ID desde la querystring ----- //
+    // ----- 1) Prefill del ID desde la querystring (id o reportId) ----- //
     function prefillID() {
       const params = new URLSearchParams(window.location.search);
-      const id = params.get('id');
-      if (id) {
+      // Acepta tanto ?id= como ?reportId=
+      const idValue = params.get('id') || params.get('reportId');
+      if (idValue) {
         const inp = document.getElementById('id');
-        inp.value = id;
+        inp.value = idValue;
         inp.readOnly = true;
       }
     }
@@ -51,7 +53,6 @@
     async function atenderReporte(event) {
       event.preventDefault();
 
-      // recolectar datos del form
       const formEl = document.getElementById('form');
       const formData = new FormData(formEl);
 
@@ -60,12 +61,7 @@
       if (files.length > 6) {
         return alert('Máximo 6 archivos.');
       }
-      // (FormData(formEl) ya incluye los archivos, pero si necesitas renombrar:
-      // formData.delete('evidencia');
-      // for (let i = 0; i < files.length; i++) {
-      //   formData.append('evidencia', files[i]);
-      // }
-      
+
       try {
         const res = await fetch('https://hook.us2.make.com/mthoenuwnpf4uwgkca2aofkrdefh7fxs', {
           method: 'POST',
@@ -82,4 +78,5 @@
   </script>
 </body>
 </html>
+
 
