@@ -2,210 +2,99 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>✏️ Corregir Reporte</title>
-  <!-- Telegram Web App SDK -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Design System Tokens */
     :root {
-      --color-primary: #0088cc;
-      --color-primary-dark: #005f8a;
-      --color-bg: #ffffff;
-      --color-bg-alt: #f5f5f5;
-      --color-text: #333333;
-      --color-text-secondary: #666666;
-      --color-border: #cccccc;
-      --color-success: #28a745;
-      --color-danger: #dc3545;
-      --radius: 6px;
+      /* Minimal, orgánico */
+      --bg: #fafafa;
+      --card-bg: #ffffff;
+      --text: #333333;
+      --muted: #666666;
+      --accent: #4caf50;
+      --accent-hover: #43a047;
+      --border: #e0e0e0;
+      --radius: 8px;
       --spacing: 1rem;
-      --font-family: 'Inter', sans-serif;
-      --transition: 0.2s;
+      --font: 'Inter', sans-serif;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --color-bg: #1f1f1f;
-        --color-bg-alt: #2a2a2a;
-        --color-text: #f5f5f5;
-        --color-text-secondary: #bbbbbb;
-        --color-border: #444444;
-      }
-    }
-    /* Base Styles */
-    * {
-      box-sizing: border-box;
+    * { box-sizing: border-box; }
+    body {
       margin: 0;
       padding: 0;
-    }
-    body {
-      font-family: var(--font-family);
-      background-color: var(--color-bg);
-      color: var(--color-text);
-      padding: var(--spacing);
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.6;
       display: flex;
+      align-items: center;
       justify-content: center;
-      align-items: flex-start;
       min-height: 100vh;
     }
     .container {
-      background: var(--color-bg-alt);
-      border-radius: var(--radius);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      max-width: 480px;
-      width: 100%;
+      background: var(--card-bg);
       padding: calc(var(--spacing) * 1.5);
-      animation: fadeIn var(--transition) ease-out;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      width: 100%;
+      max-width: 480px;
+      animation: fadeIn 0.4s ease;
     }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(10px);} 
+      to { opacity: 1; transform: translateY(0);}  
     }
     h2 {
-      font-size: 1.5rem;
+      margin-top: 0;
+      font-weight: 500;
       text-align: center;
-      margin-bottom: var(--spacing);
-      font-weight: 600;
+      color: var(--accent);
     }
     .form-group {
       margin-top: var(--spacing);
     }
-    .form-group label {
+    label {
       display: block;
-      font-weight: 600;
-      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+      color: var(--muted);
       margin-bottom: 0.25rem;
     }
-    .form-group input,
-    .form-group textarea {
+    input[type="text"], textarea, input[type="file"] {
       width: 100%;
-      padding: 0.5rem;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      background: var(--color-bg);
-      color: var(--color-text);
-      transition: border-color var(--transition);
-    }
-    .form-group input:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 2px rgba(0,136,204,0.2);
-    }
-    .form-group textarea {
-      min-height: 6rem;
-      resize: vertical;
-    }
-    .actions {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: var(--spacing);
-    }
-    .btn {
-      flex: 1;
       padding: 0.75rem;
+      font: inherit;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: var(--spacing);
+      font: inherit;
+      font-weight: 500;
+      color: #fff;
+      background: var(--accent);
       border: none;
       border-radius: var(--radius);
-      font-weight: 600;
       cursor: pointer;
-      transition: background-color var(--transition), box-shadow var(--transition);
+      transition: background 0.2s;
     }
-    .btn-primary {
-      background-color: var(--color-primary);
-      color: #fff;
+    button:hover {
+      background: var(--accent-hover);
     }
-    .btn-primary:hover {
-      background-color: var(--color-primary-dark);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .btn-danger {
-      background-color: var(--color-danger);
-      color: #fff;
-    }
-    .btn-danger:hover {
-      background-color: #a71d2a;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .note {
-      font-size: 0.875rem;
-      color: var(--color-text-secondary);
-      margin-top: 0.25rem;
+    .btn-correct {
+      background: var(--accent);
     }
   </style>
-  <script>
-    // — Telegram WebApp init & theme —
-    const tg = window.Telegram?.WebApp;
-    tg?.onEvent('themeChanged', applyTheme);
-    tg?.ready();
-    function applyTheme() {
-      const th = tg.themeParams;
-      document.documentElement.style.setProperty('--color-bg', th.bg_color || th.background_color);
-      document.documentElement.style.setProperty('--color-text', th.text_color);
-      document.documentElement.style.setProperty('--color-primary', th.button_color);
-      document.documentElement.style.setProperty('--color-text-secondary', th.hint_color);
-      document.documentElement.style.setProperty('--color-border', th.hint_color);
-      document.documentElement.style.setProperty('--color-bg-alt', th.bg_color_secondary || th.bg_color);
-    }
-
-    // — Prefill reportId & theme on load —
-    document.addEventListener('DOMContentLoaded', () => {
-      applyTheme();
-      const params = new URLSearchParams(location.search);
-      const id = params.get('reportId');
-      if (id) {
-        const f = document.getElementById('reportId');
-        f.value = id;
-        f.readOnly = true;
-      }
-    });
-
-    // — Compress image & video —
-    function compressImage(file, maxW=1200, q=0.7) {
-      return new Promise(res => {
-        const img = new Image();
-        img.onload = () => {
-          const scale = Math.min(1, maxW/img.width);
-          const c = document.createElement('canvas');
-          c.width = img.width*scale;
-          c.height = img.height*scale;
-          c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-          c.toBlob(b=> res(new File([b], file.name, {type:'image/jpeg'})), 'image/jpeg', q);
-        };
-        const r = new FileReader();
-        r.onload = e => img.src = e.target.result;
-        r.readAsDataURL(file);
-      });
-    }
-    async function compressVideo(file) { return file; }
-
-    // — Send correction —
-    async function sendCorrection(e) {
-      e.preventDefault();
-      const fd = new FormData();
-      fd.append('fecha', new Date().toISOString());
-      fd.append('reportId', document.getElementById('reportId').value);
-      fd.append('correccion', document.getElementById('correccion').value);
-
-      const files = Array.from(document.getElementById('evidencia').files);
-      if (files.length>6) return alert('Máximo 6 archivos');
-      for (let file of files) {
-        if (file.type.startsWith('image/')) fd.append('evidencia', await compressImage(file));
-        else fd.append('evidencia', await compressVideo(file));
-      }
-
-      try {
-        const res = await fetch('https://hook.us2.make.com/pautfhijd3rvo57t84czgs87mplnh3qd', {method:'POST', body:fd});
-        if (!res.ok) throw new Error(res.statusText);
-        alert('✅ Corrección enviada');
-        window.close();
-      } catch(err) {
-        console.error(err);
-        alert('❌ Error al enviar');
-      }
-    }
-  </script>
 </head>
 <body>
   <div class="container">
@@ -213,22 +102,63 @@
     <form onsubmit="sendCorrection(event)">
       <div class="form-group">
         <label for="reportId">ID del Reporte</label>
-        <input id="reportId" type="text" readonly class="input" />
+        <input id="reportId" type="text" readonly />
       </div>
       <div class="form-group">
-        <label for="correccion">Detalle de la corrección:</label>
-        <textarea id="correccion" required placeholder="Describe los cambios o ajustes…" class="textarea"></textarea>
+        <label for="correccion">Detalle de la corrección</label>
+        <textarea id="correccion" required placeholder="Describe los cambios…"></textarea>
       </div>
       <div class="form-group">
-        <label for="evidencia">Evidencia (máx. 6 archivos):</label>
-        <input id="evidencia" type="file" multiple accept="image/*,video/*" class="input" />
-        <div class="note">Puedes subir imágenes o videos.</div>
+        <label for="evidencia">Evidencia (imágenes/videos, máx.6)</label>
+        <input id="evidencia" type="file" multiple accept="image/*,video/*" />
       </div>
-      <div class="actions">
-        <button type="submit" class="btn btn-primary">Enviar Corrección</button>
-      </div>
+      <button type="submit" class="btn-correct">Enviar Corrección</button>
     </form>
   </div>
+  <script>
+    const tg = window.Telegram?.WebApp;
+    tg?.onEvent('themeChanged', applyTheme);
+    tg?.ready();
+    function applyTheme() {
+      const th = tg.themeParams;
+      // opcional: ajustar variables según modo oscuro...
+    }
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const params = new URLSearchParams(location.search);
+      const id = params.get('reportId');
+      if(id) document.getElementById('reportId').value = id;
+    });
+    function compressImage(file) {
+      return new Promise(res => {
+        const img = new Image(); img.onload = ()=>{
+          const c = document.createElement('canvas');
+          const scale = Math.min(1,1200/img.width);
+          c.width = img.width*scale; c.height = img.height*scale;
+          c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+          c.toBlob(b=>res(new File([b],file.name,{type:'image/jpeg'})), 'image/jpeg',0.7);
+        };
+        const r=new FileReader(); r.onload=e=>img.src=e.target.result; r.readAsDataURL(file);
+      });
+    }
+    async function compressVideo(file){return file;}
+    async function sendCorrection(e){
+      e.preventDefault();
+      const fd = new FormData();
+      fd.append('fecha', new Date().toISOString());
+      ['reportId','correccion'].forEach(k=>fd.append(k,document.getElementById(k).value));
+      const files=Array.from(document.getElementById('evidencia').files);
+      if(files.length>6){alert('Máximo 6 archivos.');return;}
+      for(let f of files){
+        fd.append('evidencia', f.type.startsWith('image/')?await compressImage(f):await compressVideo(f));
+      }
+      try{
+        const res=await fetch('https://hook.us2.make.com/pautfhijd3rvo57t84czgs87mplnh3qd',{method:'POST',body:fd});
+        if(!res.ok)throw res.statusText;
+        alert('✅ Corrección enviada'); window.close();
+      }catch(err){console.error(err);alert('❌ Error al enviar');}
+    }
+  </script>
 </body>
 </html>
+
 
