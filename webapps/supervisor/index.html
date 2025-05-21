@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>✅ Aprobar Reporte</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: sans-serif; padding:1rem; max-width:500px; margin:auto;
+           background-color: #f0f2f5; color: #333; }
+    h2 { text-align:center; }
+    label { display:block; margin:1rem 0 .25rem; color:#555; font-weight:bold; }
+    input, button { width:100%; padding:.5rem; box-sizing:border-box; }
+    input[readonly] { background:#eee; }
+    button { margin-top:1rem; background:#28a745; color:#fff; border:none;
+             border-radius:6px; cursor:pointer; }
+    button.reject { background:#dc3545; }
+  </style>
+  <script>
+    // Inicializa WebApp y tema
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+    // 1) Rellenar ID desde querystring ?reportId=...
+    window.addEventListener('DOMContentLoaded', ()=>{
+      const p = new URLSearchParams(location.search);
+      const id = p.get('reportId');
+      if(id) document.getElementById('reportId').value = id;
+    });
+
+    // 2) Función genérica para enviar aprobación o rechazo
+    async function sendDecision(decision) {
+      const form = new FormData();
+      form.append('reportId', document.getElementById('reportId').value);
+      form.append('decision', decision);
+      try {
+        const res = await fetch('https://hook.us2.make.com/¡TU_WEBHOOK_DE_MAKE!', {
+          method:'POST', body: form
+        });
+        if(!res.ok) throw new Error(res.statusText);
+        alert('✅ ' + (decision==='approve' ? 'Aprobado' : 'Rechazado'));
+        window.close();
+      } catch(err) {
+        console.error(err);
+        alert('❌ Error al enviar');
+      }
+    }
+  </script>
+</head>
+<body>
+  <h2>👀 Revisión de Reporte</h2>
+  <label>ID del Reporte</label>
+  <input id="reportId" type="text" readonly />
+
+  <button onclick="sendDecision('approve')">✅ Aprobar</button>
+  <button class="reject" onclick="sendDecision('reject')">🔄 Rechazar y reenviar</button>
+</body>
+</html>
