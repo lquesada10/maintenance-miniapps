@@ -7,59 +7,90 @@
   <style>
     body { font-family: sans-serif; padding: 1rem; max-width: 500px; margin: auto; }
     label { font-weight: bold; margin-top: 1rem; display: block; }
-    input, textarea, select, button { width: 100%; margin-top: 0.25rem; padding: 0.5rem; }
+    input, textarea, button { width: 100%; margin-top: 0.25rem; padding: 0.5rem; box-sizing: border-box; }
     textarea { min-height: 5rem; }
-    button { margin-top: 1rem; padding: 0.75rem; background-color: #0088cc; color: white; border: none; border-radius: 6px; }
+    button { margin-top: 1rem; padding: 0.75rem; background-color: #0088cc; color: white; border: none; border-radius: 6px; cursor: pointer; }
     button:hover { background-color: #0077b3; }
+    /* Input costo: solo números, escritura directa, sin flechitas */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
   </style>
 </head>
 <body>
   <h2>⚙️ Atender Reporte</h2>
   <form id="form" onsubmit="atenderReporte(event)">
-    <!-- 1) Campo ID (se rellena solo y es readonly) -->
     <label for="id">ID interno:</label>
     <input id="id" name="id" type="text" placeholder="se rellena solo" readonly />
-    
-    <!-- 2) Campo Costo -->
-    <label for="costo">Costo:</label>
-    <input id="costo" name="costo" type="number" min="0" step="0.01" required />
 
-    <!-- 3) Comentarios -->
+    <label for="costo">Costo:</label>
+    <input id="costo" name="costo" type="number" inputmode="decimal" pattern="[0-9]+([\.,][0-9]{1,2})?" placeholder="0.00" min="0" step="0.01" required />
+
     <label for="comentarios">Comentarios:</label>
     <textarea id="comentarios" name="comentarios" required></textarea>
 
-    <!-- 4) Evidencia (hasta 6 archivos) -->
-    <label for="evidencia">Evidencia (hasta 6 archivos):</label>
-    <input id="evidencia" name="evidencia" type="file" multiple accept="image/*,video/*,application/pdf" />
+    <label for="evidencia">Evidencia (max 6 archivos; imágenes y videos):</label>
+    <input id="evidencia" name="evidencia" type="file" multiple accept="image/*,video/*" />
 
     <button type="submit">Enviar actualización</button>
   </form>
 
   <script>
-    // ----- 1) Prefill del ID desde la querystring (id o reportId) ----- //
-    function prefillID() {
+    // 1) Prefill del ID desde querystring (?id= o ?reportId=)
+    document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
-      // Acepta tanto ?id= como ?reportId=
       const idValue = params.get('id') || params.get('reportId');
       if (idValue) {
         const inp = document.getElementById('id');
         inp.value = idValue;
         inp.readOnly = true;
       }
-    }
-    document.addEventListener('DOMContentLoaded', prefillID);
+    });
 
-    // ----- 2) Función para enviar al webhook de Make ----- //
+    // 2) Comprimir imágenes con canvas (maxWidth=1200, calidad=0.7)
+    function compressImage(file, maxWidth = 1200, quality = 0.7) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxWidth / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => {
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          }, 'image/jpeg', quality);
+        };
+        const reader = new FileReader();
+        reader.onload = e => img.src = e.target.result;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // 3) Stub para compresión de video (puedes integrar ffmpeg.wasm aquí)
+    async function compressVideo(file) {
+      // Por ahora, reenvía el video sin cambios
+      return file;
+    }
+
+    // 4) Enviar formulario al webhook de Make
     async function atenderReporte(event) {
       event.preventDefault();
+      const formData = new FormData();
+      formData.append('id', document.getElementById('id').value);
+      formData.append('costo', document.getElementById('costo').value);
+      formData.append('comentarios', document.getElementById('comentarios').value);
 
-      const formEl = document.getElementById('form');
-      const formData = new FormData(formEl);
-
-      // limitar archivos a 6
-      const files = document.getElementById('evidencia').files;
-      if (files.length > 6) {
-        return alert('Máximo 6 archivos.');
+      const files = Array.from(document.getElementById('evidencia').files);
+      if (files.length > 6) return alert('Máximo 6 archivos.');
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          const img = await compressImage(file);
+          formData.append('evidencia', img);
+        } else if (file.type.startsWith('video/')) {
+          const vid = await compressVideo(file);
+          formData.append('evidencia', vid);
+        }
       }
 
       try {
@@ -69,7 +100,7 @@
         });
         if (!res.ok) throw new Error(res.statusText);
         alert('✅ Actualización enviada');
-        formEl.reset();
+        document.getElementById('form').reset();
       } catch (err) {
         console.error(err);
         alert('❌ Error al enviar. Mira la consola.');
@@ -78,5 +109,6 @@
   </script>
 </body>
 </html>
+
 
 
