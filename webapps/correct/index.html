@@ -44,7 +44,7 @@
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px);} 
-      to { opacity: 1; transform: translateY(0);}  
+      to   { opacity: 1; transform: translateY(0);}  
     }
     h2 {
       margin-top: 0;
@@ -94,10 +94,18 @@
     .btn-correct {
       background: var(--accent);
     }
+    .logo {
+      display: block;
+      margin: 0 auto 1rem;
+      max-width: 120px;
+      border-radius: var(--radius);
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Logo externo cargado desde GitHub -->
+    <img src="3eadcceb44840333b8cfd0db91d2bfca0c22da68.png" alt="Logo La Milagresa" class="logo" />
     <h2>✏️ Corregir Reporte</h2>
     <form onsubmit="sendCorrection(event)">
       <div class="form-group">
@@ -160,5 +168,6 @@
   </script>
 </body>
 </html>
+
 
 
