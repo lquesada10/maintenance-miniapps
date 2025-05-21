@@ -8,13 +8,13 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
-      /* Minimal, orgánico */
-      --bg: #fafafa;
-      --card-bg: #ffffff;
+      /* Tema minimalista con crema y naranja */
+      --bg: #faf8f2;
+      --card-bg: #fff8e1;
       --text: #333333;
       --muted: #666666;
-      --accent: #4caf50;
-      --accent-hover: #43a047;
+      --accent: #ffa726;
+      --accent-hover: #fb8c00;
       --border: #e0e0e0;
       --radius: 8px;
       --spacing: 1rem;
@@ -43,14 +43,21 @@
       animation: fadeIn 0.4s ease;
     }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px);} 
+      from { opacity: 0; transform: translateY(10px);}  
       to   { opacity: 1; transform: translateY(0);}  
+    }
+    .logo {
+      display: block;
+      margin: 0 auto 1rem;
+      max-width: 160px;
+      border-radius: var(--radius);
     }
     h2 {
       margin-top: 0;
       font-weight: 500;
       text-align: center;
       color: var(--accent);
+      font-size: 1.75rem;
     }
     .form-group {
       margin-top: var(--spacing);
@@ -91,15 +98,6 @@
     button:hover {
       background: var(--accent-hover);
     }
-    .btn-correct {
-      background: var(--accent);
-    }
-    .logo {
-      display: block;
-      margin: 0 auto 1rem;
-      max-width: 120px;
-      border-radius: var(--radius);
-    }
   </style>
 </head>
 <body>
@@ -120,7 +118,7 @@
         <label for="evidencia">Evidencia (imágenes/videos, máx.6)</label>
         <input id="evidencia" type="file" multiple accept="image/*,video/*" />
       </div>
-      <button type="submit" class="btn-correct">Enviar Corrección</button>
+      <button type="submit">Enviar Corrección</button>
     </form>
   </div>
   <script>
@@ -128,8 +126,7 @@
     tg?.onEvent('themeChanged', applyTheme);
     tg?.ready();
     function applyTheme() {
-      const th = tg.themeParams;
-      // opcional: ajustar variables según modo oscuro...
+      /* Podrías mapear th.bg_color etc. a variables si quieres modo oscuro */
     }
     document.addEventListener('DOMContentLoaded', ()=>{
       const params = new URLSearchParams(location.search);
@@ -154,20 +151,17 @@
       const fd = new FormData();
       fd.append('fecha', new Date().toISOString());
       ['reportId','correccion'].forEach(k=>fd.append(k,document.getElementById(k).value));
-      const files=Array.from(document.getElementById('evidencia').files);
+      const files = Array.from(document.getElementById('evidencia').files);
       if(files.length>6){alert('Máximo 6 archivos.');return;}
       for(let f of files){
         fd.append('evidencia', f.type.startsWith('image/')?await compressImage(f):await compressVideo(f));
       }
       try{
-        const res=await fetch('https://hook.us2.make.com/pautfhijd3rvo57t84czgs87mplnh3qd',{method:'POST',body:fd});
-        if(!res.ok)throw res.statusText;
+        const res = await fetch('https://hook.us2.make.com/pautfhijd3rvo57t84czgs87mplnh3qd',{method:'POST',body:fd});
+        if(!res.ok) throw res.statusText;
         alert('✅ Corrección enviada'); window.close();
-      }catch(err){console.error(err);alert('❌ Error al enviar');}
+      } catch(err) { console.error(err); alert('❌ Error al enviar'); }
     }
   </script>
 </body>
 </html>
-
-
-
