@@ -18,22 +18,22 @@
     button.reject { background:#dc3545; }
   </style>
   <script>
-    // Inicializa WebApp de Telegram y aplica tema
+    // Inicializa WebApp de Telegram
     const tg = window.Telegram?.WebApp;
     tg?.ready();
     tg?.onEvent('themeChanged', () => {});
 
-    // 1) Prefill del ID desde querystring ?reportId=...
+    // Prefill del ID desde querystring ?reportId=...
     window.addEventListener('DOMContentLoaded', () => {
-      const p = new URLSearchParams(window.location.search);
+      const p = new URLSearchParams(location.search);
       const id = p.get('reportId');
       if (id) document.getElementById('reportId').value = id;
     });
 
-    // 2) Función genérica para enviar aprobación o rechazo con fecha y motivo
+    // Envía decisión con fecha y motivo
     async function sendDecision(decision) {
       const motivoEl = document.getElementById('motivo');
-      const motivo = motivoEl?.value.trim() || '';
+      const motivo = motivoEl.value.trim();
       if (decision === 'reject' && !motivo) {
         alert('Por favor, justifica el motivo de rechazo.');
         return;
@@ -42,9 +42,8 @@
       form.append('reportId', document.getElementById('reportId').value);
       form.append('decision', decision);
       if (decision === 'reject') form.append('motivo', motivo);
-      // Fecha ISO sin ms
-      const fecha = new Date().toISOString().slice(0,19);
-      form.append('fecha', fecha);
+      // Fecha ISO (sin ms)
+      form.append('fecha', new Date().toISOString().slice(0,19));
       try {
         const res = await fetch('https://hook.us2.make.com/nxhvctirgwkv31qbochatl8i9rc9clav', {
           method: 'POST', body: form
@@ -64,9 +63,6 @@
   <label>ID del Reporte</label>
   <input id="reportId" type="text" readonly />
 
-  <label>Comentarios del Supervisor:</label>
-  <textarea id="comentariosSupervisor" disabled placeholder="Opcional, solo para tu referencia..."></textarea>
-
   <label>Motivo de rechazo (si aplica):</label>
   <textarea id="motivo" placeholder="Describe el motivo de rechazo..."></textarea>
 
@@ -74,4 +70,5 @@
   <button class="reject" onclick="sendDecision('reject')">🔄 Rechazar y reenviar</button>
 </body>
 </html>
+
 
