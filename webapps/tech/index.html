@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>🔧 Atender Reporte</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
@@ -29,8 +29,7 @@
       font-weight: bold;
       color: var(--secondary-text);
     }
-    input,
-    textarea {
+    input, textarea {
       width: 100%;
       margin-top: 0.25rem;
       padding: 0.5rem;
@@ -40,9 +39,15 @@
       border: 1px solid var(--border-color);
       border-radius: 4px;
     }
-    textarea {
-      min-height: 5rem;
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+    textarea { min-height: 5rem; }
     button {
       width: 100%;
       margin-top: 1rem;
@@ -53,17 +58,12 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    button:hover {
-      opacity: 0.9;
-    }
-    /* Ocultar flechitas de número */
-    input[type=number]::-webkit-outer-spin-button,
-    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type=number] { -moz-appearance: textfield; }
+    button:hover { opacity: 0.9; }
   </style>
   <script>
-    // Inicializar WebApp y tema
+    // 1) Inicializa WebApp de Telegram y aplica tema dinámico
     const tg = window.Telegram?.WebApp;
+    tg?.onEvent('themeChanged', applyTheme);
     tg?.ready();
     function applyTheme() {
       const theme = tg.themeParams;
@@ -75,40 +75,20 @@
       document.documentElement.style.setProperty('--button-bg', theme.button_color || '#0088cc');
       document.documentElement.style.setProperty('--button-text', theme.button_text_color || '#ffffff');
     }
-    tg?.onEvent('themeChanged', applyTheme);
-    document.addEventListener('DOMContentLoaded', applyTheme);
-  </script>
-</head>
-<body>
-  <h2>⚙️ Atender Reporte</h2>
-  <form id="form" onsubmit="atenderReporte(event)">
 
-    <label for="id">ID interno:</label>
-    <input id="id" name="id" type="text" placeholder="se rellena solo" readonly />
-
-    <label for="costo">Costo:</label>
-    <input id="costo" name="costo" type="number" inputmode="decimal" pattern="[0-9]+([\.,][0-9]{1,2})?" placeholder="0.00" min="0" step="0.01" required />
-
-    <label for="comentarios">Comentarios:</label>
-    <textarea id="comentarios" name="comentarios" required></textarea>
-
-    <label for="evidencia">Evidencia (max 6 archivos; imágenes y videos):</label>
-    <input id="evidencia" name="evidencia" type="file" multiple accept="image/*,video/*" />
-
-    <button type="submit">Enviar actualización</button>
-  </form>
-
-  <script>
-    // Prefill ID desde querystring (?id= o ?reportId=)
+    // 2) Pre-fill del ID interno desde la querystring (?id= o ?reportId=)
     document.addEventListener('DOMContentLoaded', () => {
+      applyTheme();
       const params = new URLSearchParams(window.location.search);
       const idValue = params.get('id') || params.get('reportId');
       if (idValue) {
-        document.getElementById('id').value = idValue;
+        const idField = document.getElementById('id');
+        idField.value = idValue;
+        idField.readOnly = true;
       }
     });
 
-    // Comprimir imágenes con canvas
+    // 3) Funciones de compresión para imágenes y videos
     function compressImage(file, maxWidth = 1200, quality = 0.7) {
       return new Promise(resolve => {
         const img = new Image();
@@ -118,38 +98,86 @@
           canvas.width = img.width * scale;
           canvas.height = img.height * scale;
           canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', quality);
+          canvas.toBlob(blob => {
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          }, 'image/jpeg', quality);
         };
-        const reader = new FileReader(); reader.onload = e => img.src = e.target.result; reader.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onload = e => img.src = e.target.result;
+        reader.readAsDataURL(file);
       });
     }
+    async function compressVideo(file) {
+      // Aquí podrías integrar ffmpeg.wasm; por ahora reenvía sin cambios
+      return file;
+    }
 
-    // Stub video
-    async function compressVideo(file) { return file; }
-
-    // Enviar al webhook de Make
+    // 4) Envío del formulario al webhook de Make
     async function atenderReporte(event) {
       event.preventDefault();
       const formData = new FormData();
-      ['id','costo','comentarios'].forEach(key => formData.append(key, document.getElementById(key).value));
+      ['id', 'costo', 'comentarios'].forEach(k =>
+        formData.append(k, document.getElementById(k).value)
+      );
+
       const files = Array.from(document.getElementById('evidencia').files);
-      if (files.length > 6) return alert('Máximo 6 archivos.');
-      for (const file of files) {
-        formData.append('evidencia', file.type.startsWith('image/') ? await compressImage(file) : await compressVideo(file));
+      if (files.length > 6) {
+        alert('Máximo 6 archivos.');
+        return;
       }
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          formData.append('evidencia', await compressImage(file));
+        } else if (file.type.startsWith('video/')) {
+          formData.append('evidencia', await compressVideo(file));
+        }
+      }
+
       try {
-        const res = await fetch('https://hook.us2.make.com/mthoenuwnpf4uwgkca2aofkrdefh7fxs', { method: 'POST', body: formData });
+        const res = await fetch('https://hook.us2.make.com/mthoenuwnpf4uwgkca2aofkrdefh7fxs', {
+          method: 'POST',
+          body: formData
+        });
         if (!res.ok) throw new Error(res.statusText);
         alert('✅ Actualización enviada');
-        form.reset();
+        document.getElementById('form').reset();
       } catch (err) {
         console.error(err);
         alert('❌ Error al enviar. Mira la consola.');
       }
     }
   </script>
+</head>
+<body>
+  <h2>⚙️ Atender Reporte</h2>
+  <form id="form" onsubmit="atenderReporte(event)">
+    <label for="id">ID interno:</label>
+    <input id="id" name="id" type="text" placeholder="se rellena solo" readonly />
+
+    <label for="costo">Costo:</label>
+    <input
+      id="costo"
+      name="costo"
+      type="number"
+      inputmode="decimal"
+      pattern="[0-9]+([\.,][0-9]{1,2})?"
+      placeholder="0.00"
+      min="0"
+      step="0.01"
+      required
+    />
+
+    <label for="comentarios">Comentarios:</label>
+    <textarea id="comentarios" name="comentarios" required></textarea>
+
+    <label for="evidencia">Evidencia (max 6 archivos; imágenes y videos):</label>
+    <input id="evidencia" name="evidencia" type="file" multiple accept="image/*,video/*" />
+
+    <button type="submit">Enviar actualización</button>
+  </form>
 </body>
 </html>
+
 
 
 
