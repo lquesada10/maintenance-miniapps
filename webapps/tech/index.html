@@ -2,24 +2,87 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🔧 Atender Reporte</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 1rem; max-width: 500px; margin: auto; }
-    label { font-weight: bold; margin-top: 1rem; display: block; }
-    input, textarea, button { width: 100%; margin-top: 0.25rem; padding: 0.5rem; box-sizing: border-box; }
-    textarea { min-height: 5rem; }
-    button { margin-top: 1rem; padding: 0.75rem; background-color: #0088cc; color: white; border: none; border-radius: 6px; cursor: pointer; }
-    button:hover { background-color: #0077b3; }
-    /* Input costo: solo números, escritura directa, sin flechitas */
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+      --secondary-text: #555555;
+      --input-bg: #ffffff;
+      --border-color: #cccccc;
+      --button-bg: #0088cc;
+      --button-text: #ffffff;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: sans-serif;
+      padding: 1rem;
+      max-width: 500px;
+      margin: auto;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+      color: var(--secondary-text);
+    }
+    input,
+    textarea {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.5rem;
+      box-sizing: border-box;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+    }
+    textarea {
+      min-height: 5rem;
+    }
+    button {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background-color: var(--button-bg);
+      color: var(--button-text);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    /* Ocultar flechitas de número */
     input[type=number]::-webkit-outer-spin-button,
     input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
   </style>
+  <script>
+    // Inicializar WebApp y tema
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+    function applyTheme() {
+      const theme = tg.themeParams;
+      document.documentElement.style.setProperty('--bg-color', theme.bg_color || theme.background_color || '#ffffff');
+      document.documentElement.style.setProperty('--text-color', theme.text_color || '#000000');
+      document.documentElement.style.setProperty('--secondary-text', theme.hint_color || '#555555');
+      document.documentElement.style.setProperty('--input-bg', theme.bg_color || '#ffffff');
+      document.documentElement.style.setProperty('--border-color', theme.hint_color || '#cccccc');
+      document.documentElement.style.setProperty('--button-bg', theme.button_color || '#0088cc');
+      document.documentElement.style.setProperty('--button-text', theme.button_text_color || '#ffffff');
+    }
+    tg?.onEvent('themeChanged', applyTheme);
+    document.addEventListener('DOMContentLoaded', applyTheme);
+  </script>
 </head>
 <body>
   <h2>⚙️ Atender Reporte</h2>
   <form id="form" onsubmit="atenderReporte(event)">
+
     <label for="id">ID interno:</label>
     <input id="id" name="id" type="text" placeholder="se rellena solo" readonly />
 
@@ -36,18 +99,16 @@
   </form>
 
   <script>
-    // 1) Prefill del ID desde querystring (?id= o ?reportId=)
+    // Prefill ID desde querystring (?id= o ?reportId=)
     document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
       const idValue = params.get('id') || params.get('reportId');
       if (idValue) {
-        const inp = document.getElementById('id');
-        inp.value = idValue;
-        inp.readOnly = true;
+        document.getElementById('id').value = idValue;
       }
     });
 
-    // 2) Comprimir imágenes con canvas (maxWidth=1200, calidad=0.7)
+    // Comprimir imágenes con canvas
     function compressImage(file, maxWidth = 1200, quality = 0.7) {
       return new Promise(resolve => {
         const img = new Image();
@@ -57,50 +118,30 @@
           canvas.width = img.width * scale;
           canvas.height = img.height * scale;
           canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(blob => {
-            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-          }, 'image/jpeg', quality);
+          canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', quality);
         };
-        const reader = new FileReader();
-        reader.onload = e => img.src = e.target.result;
-        reader.readAsDataURL(file);
+        const reader = new FileReader(); reader.onload = e => img.src = e.target.result; reader.readAsDataURL(file);
       });
     }
 
-    // 3) Stub para compresión de video (puedes integrar ffmpeg.wasm aquí)
-    async function compressVideo(file) {
-      // Por ahora, reenvía el video sin cambios
-      return file;
-    }
+    // Stub video
+    async function compressVideo(file) { return file; }
 
-    // 4) Enviar formulario al webhook de Make
+    // Enviar al webhook de Make
     async function atenderReporte(event) {
       event.preventDefault();
       const formData = new FormData();
-      formData.append('id', document.getElementById('id').value);
-      formData.append('costo', document.getElementById('costo').value);
-      formData.append('comentarios', document.getElementById('comentarios').value);
-
+      ['id','costo','comentarios'].forEach(key => formData.append(key, document.getElementById(key).value));
       const files = Array.from(document.getElementById('evidencia').files);
       if (files.length > 6) return alert('Máximo 6 archivos.');
       for (const file of files) {
-        if (file.type.startsWith('image/')) {
-          const img = await compressImage(file);
-          formData.append('evidencia', img);
-        } else if (file.type.startsWith('video/')) {
-          const vid = await compressVideo(file);
-          formData.append('evidencia', vid);
-        }
+        formData.append('evidencia', file.type.startsWith('image/') ? await compressImage(file) : await compressVideo(file));
       }
-
       try {
-        const res = await fetch('https://hook.us2.make.com/mthoenuwnpf4uwgkca2aofkrdefh7fxs', {
-          method: 'POST',
-          body: formData
-        });
+        const res = await fetch('https://hook.us2.make.com/mthoenuwnpf4uwgkca2aofkrdefh7fxs', { method: 'POST', body: formData });
         if (!res.ok) throw new Error(res.statusText);
         alert('✅ Actualización enviada');
-        document.getElementById('form').reset();
+        form.reset();
       } catch (err) {
         console.error(err);
         alert('❌ Error al enviar. Mira la consola.');
