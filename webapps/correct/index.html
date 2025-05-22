@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>✏️ Corregir Reporte</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
@@ -18,7 +18,8 @@
       --border: #e0e0e0;
       --radius: 8px;
       --spacing: 1rem;
-      --font: 'Inter', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-heading: 'Playfair Display', serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -26,7 +27,7 @@
       padding: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: var(--font);
+      font-family: var(--font-body);
       line-height: 1.6;
       display: flex;
       align-items: center;
@@ -48,16 +49,18 @@
     }
     .logo {
       display: block;
-      margin: 0 auto 1rem;
-      max-width: 160px;
-      border-radius: var(--radius);
+      margin: 0 auto 1.5rem;
+      width: 250px;
+      height: auto;
     }
     h2 {
       margin-top: 0;
-      font-weight: 500;
+      font-family: var(--font-heading);
+      font-weight: 700;
       text-align: center;
       color: var(--accent);
-      font-size: 1.75rem;
+      font-size: 3rem;
+      line-height: 1.2;
     }
     .form-group {
       margin-top: var(--spacing);
@@ -71,7 +74,7 @@
     input[type="text"], textarea, input[type="file"] {
       width: 100%;
       padding: 0.75rem;
-      font: inherit;
+      font-family: var(--font-body);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--bg);
@@ -82,18 +85,25 @@
       outline: none;
       border-color: var(--accent);
     }
+    .evidence-label {
+      margin-top: var(--spacing);
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
     button {
       width: 100%;
-      padding: 0.75rem;
+      padding: 1rem;
       margin-top: var(--spacing);
-      font: inherit;
-      font-weight: 500;
+      font-family: var(--font-heading);
+      font-weight: 700;
       color: #fff;
       background: var(--accent);
       border: none;
       border-radius: var(--radius);
       cursor: pointer;
       transition: background 0.2s;
+      font-size: 1rem;
     }
     button:hover {
       background: var(--accent-hover);
@@ -102,7 +112,7 @@
 </head>
 <body>
   <div class="container">
-    <!-- Logo actualizado de corrección -->
+    <!-- Logo más grande -->
     <img src="logo LM mantenimiento.png" alt="Logo La Milagresa" class="logo" />
     <h2>✏️ Corregir Reporte</h2>
     <form onsubmit="sendCorrection(event)">
@@ -115,7 +125,7 @@
         <textarea id="correccion" required placeholder="Describe los cambios…"></textarea>
       </div>
       <div class="form-group">
-        <label for="evidencia">Evidencia (imágenes/videos, máx.6)</label>
+        <div class="evidence-label">Evidencia y multimedia — hasta 6 archivos</div>
         <input id="evidencia" type="file" multiple accept="image/*,video/*" />
       </div>
       <button type="submit">Enviar Corrección</button>
@@ -126,7 +136,7 @@
     tg?.onEvent('themeChanged', applyTheme);
     tg?.ready();
     function applyTheme() {
-      /* Podrías mapear th.bg_color etc. a variables si quieres modo oscuro */
+      /* Ajustes modo oscuro opcional */
     }
     document.addEventListener('DOMContentLoaded', ()=>{
       const params = new URLSearchParams(location.search);
