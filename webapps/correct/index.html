@@ -8,7 +8,6 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
-      /* Tema minimalista con crema y naranja */
       --bg: #faf8f2;
       --card-bg: #fff8e1;
       --text: #333333;
@@ -112,7 +111,6 @@
 </head>
 <body>
   <div class="container">
-    <!-- Logo aún más grande -->
     <img src="logo LM mantenimiento.png" alt="Logo La Milagresa" class="logo" />
     <h2>✏️ Corregir Reporte</h2>
     <form onsubmit="sendCorrection(event)">
@@ -135,44 +133,63 @@
     const tg = window.Telegram?.WebApp;
     tg?.onEvent('themeChanged', applyTheme);
     tg?.ready();
-    function applyTheme() {
-      /* Ajustes modo oscuro opcional */
-    }
-    document.addEventListener('DOMContentLoaded', ()=>{
+    function applyTheme() {}
+
+    document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(location.search);
       const id = params.get('reportId');
-      if(id) document.getElementById('reportId').value = id;
+      if (id) document.getElementById('reportId').value = id;
     });
+
     function compressImage(file) {
       return new Promise(res => {
-        const img = new Image(); img.onload = ()=>{
+        const img = new Image(); img.onload = () => {
           const c = document.createElement('canvas');
-          const scale = Math.min(1,1200/img.width);
-          c.width = img.width*scale; c.height = img.height*scale;
-          c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-          c.toBlob(b=>res(new File([b],file.name,{type:'image/jpeg'})), 'image/jpeg',0.7);
+          const scale = Math.min(1, 1200 / img.width);
+          c.width = img.width * scale; c.height = img.height * scale;
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          c.toBlob(b => res(new File([b], file.name, { type: 'image/jpeg' })), 'image/jpeg', 0.7);
         };
-        const r=new FileReader(); r.onload=e=>img.src=e.target.result; r.readAsDataURL(file);
+        const r = new FileReader(); r.onload = e => img.src = e.target.result; r.readAsDataURL(file);
       });
     }
-    async function compressVideo(file){return file;}
-    async function sendCorrection(e){
+
+    async function compressVideo(file) { return file; }
+
+    async function sendCorrection(e) {
       e.preventDefault();
       const fd = new FormData();
       fd.append('fecha', new Date().toISOString());
-      ['reportId','correccion'].forEach(k=>fd.append(k,document.getElementById(k).value));
-      const files = Array.from(document.getElementById('evidencia').files);
-      if(files.length>6){alert('Máximo 6 archivos.');return;}
-      for(let f of files){
-        fd.append('evidencia', f.type.startsWith('image/')?await compressImage(f):await compressVideo(f));
+      ['reportId', 'correccion'].forEach(k => fd.append(k, document.getElementById(k).value));
+
+      const chatId = tg?.initDataUnsafe?.user?.id;
+      if (chatId) {
+        fd.append('chat_id', chatId);
+      } else {
+        alert('❌ No se pudo obtener tu chat ID desde Telegram.');
+        return;
       }
-      try{
-        const res = await fetch('https://hook.us2.make.com/pautfhijd3rvo57t84czgs87mplnh3qd',{method:'POST',body:fd});
-        if(!res.ok) throw res.statusText;
-        alert('✅ Corrección enviada'); window.close();
-      } catch(err) { console.error(err); alert('❌ Error al enviar'); }
+
+      const files = Array.from(document.getElementById('evidencia').files);
+      if (files.length > 6) {
+        alert('Máximo 6 archivos.');
+        return;
+      }
+      for (let f of files) {
+        fd.append('evidencia', f.type.startsWith('image/') ? await compressImage(f) : await compressVideo(f));
+      }
+      try {
+        const res = await fetch('https://hook.us2.make.com/pautfhijd3rvo57t84czgs87mplnh3qd', { method: 'POST', body: fd });
+        if (!res.ok) throw res.statusText;
+        alert('✅ Corrección enviada');
+        window.close();
+      } catch (err) {
+        console.error(err);
+        alert('❌ Error al enviar');
+      }
     }
   </script>
 </body>
 </html>
+
 
