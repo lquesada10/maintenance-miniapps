@@ -3,72 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>✅ Aprobar Reporte</title>
+  <title>👀 Revisión de Reporte</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body { font-family: sans-serif; padding:1rem; max-width:500px; margin:auto;
-           background-color: #f0f2f5; color: #333; }
-    h2 { text-align:center; }
-    label { display:block; margin:1rem 0 .25rem; color:#555; font-weight:bold; }
-    input, textarea, button { width:100%; padding:.5rem; box-sizing:border-box; }
-    input[readonly] { background:#eee; }
-    textarea { min-height:4rem; margin-bottom:1rem; }
-    button { margin-top:1rem; background:#28a745; color:#fff; border:none;
-             border-radius:6px; cursor:pointer; }
-    button.reject { background:#dc3545; }
-  </style>
-  <script>
-    // Inicializa WebApp de Telegram
-    const tg = window.Telegram?.WebApp;
-    tg?.ready();
-    tg?.onEvent('themeChanged', () => {});
-
-    // Prefill del ID desde querystring ?reportId=...
-    window.addEventListener('DOMContentLoaded', () => {
-      const p = new URLSearchParams(location.search);
-      const id = p.get('reportId');
-      if (id) document.getElementById('reportId').value = id;
-    });
-
-    // Envía decisión con fecha y motivo
-    async function sendDecision(decision) {
-      const motivoEl = document.getElementById('motivo');
-      const motivo = motivoEl.value.trim();
-      if (decision === 'reject' && !motivo) {
-        alert('Por favor, justifica el motivo de rechazo.');
-        return;
-      }
-      const form = new FormData();
-      form.append('reportId', document.getElementById('reportId').value);
-      form.append('decision', decision);
-      if (decision === 'reject') form.append('motivo', motivo);
-      // Fecha ISO (sin ms)
-      form.append('fecha', new Date().toISOString().slice(0,19));
-      try {
-        const res = await fetch('https://hook.us2.make.com/nxhvctirgwkv31qbochatl8i9rc9clav', {
-          method: 'POST', body: form
-        });
-        if (!res.ok) throw new Error(res.statusText);
-        alert('✅ ' + (decision === 'approve' ? 'Aprobado' : 'Rechazado'));
-        window.close();
-      } catch (err) {
-        console.error(err);
-        alert('❌ Error al enviar');
-      }
+    :root {
+      /* Mismos colores y fondo crema del otro estilo */
+      --bg: #faf8f2;
+      --card-bg: #fff8e1;
+      --text: #333333;
+      --muted: #4caf50; /* etiquetas en verde */
+      --accent: #4caf50;
+      --accent-hover: #43a047;
+      --border: #e0e0e0;
+      --radius: 8px;
+      --spacing: 1rem;
+      --font-body: 'Inter', sans-serif;
+      --font-heading: 'Playfair Display', serif;
     }
-  </script>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: var(--card-bg);
+      padding: calc(var(--spacing) * 1.5);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      width: 100%;
+      max-width: 480px;
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+    .logo { display: block; margin: 0 auto 1rem; width: 300px; height: auto; }
+    h2 {
+      margin: 0 0 1rem;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      text-align: center;
+      color: var(--accent);
+      font-size: 2.5rem;
+      line-height: 1.2;
+    }
+    .form-group { margin-top: var(--spacing); }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    button {
+      width: 100%;
+      padding: 1rem;
+      margin-top: var(--spacing);
+      font-family: var(--font-heading);
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 1rem;
+    }
+    button:hover { background: var(--accent-hover); }
+    button.reject { background: #dc3545; }
+  </style>
 </head>
 <body>
-  <h2>👀 Revisión de Reporte</h2>
-  <label>ID del Reporte</label>
-  <input id="reportId" type="text" readonly />
-
-  <label>Motivo de rechazo (si aplica):</label>
-  <textarea id="motivo" placeholder="Describe el motivo de rechazo..."></textarea>
-
-  <button onclick="sendDecision('approve')">✅ Aprobar</button>
-  <button class="reject" onclick="sendDecision('reject')">🔄 Rechazar y reenviar</button>
+  <div class="container">
+    <!-- Logo del supervisor -->
+    <img src="logo LM mantenimiento.png" alt="Logo La Milagresa" class="logo" />
+    <h2>👀 Revisión de Reporte</h2>
+    <div class="form-group">
+      <label>ID del Reporte</label>
+      <input id="reportId" type="text" readonly />
+    </div>
+    <div class="form-group">
+      <label>Motivo de rechazo (si aplica)</label>
+      <textarea id="motivo" placeholder="Describe el motivo de rechazo..."></textarea>
+    </div>
+    <button onclick="sendDecision('approve')">✅ Aprobar</button>
+    <button class="reject" onclick="sendDecision('reject')">🔄 Rechazar y reenviar</button>
+  </div>
+  <script>
+    const tg = window.Telegram?.WebApp;
+    tg?.onEvent('themeChanged', () => {});
+    tg?.ready();
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const params = new URLSearchParams(location.search);
+      const id = params.get('reportId');
+      if(id) document.getElementById('reportId').value = id;
+    });
+    async function sendDecision(decision) {
+      const motivo = document.getElementById('motivo').value.trim();
+      if(decision==='reject' && !motivo) { alert('Por favor, justifica el motivo de rechazo.'); return; }
+      const fd = new FormData();
+      fd.append('reportId', document.getElementById('reportId').value);
+      fd.append('decision', decision);
+      if(decision==='reject') fd.append('motivo', motivo);
+      fd.append('fecha', new Date().toISOString().slice(0,19));
+      try {
+        const res = await fetch('https://hook.us2.make.com/nxhvctirgwkv31qbochatl8i9rc9clav', { method:'POST', body:fd });
+        if(!res.ok) throw new Error(res.statusText);
+        alert('✅ ' + (decision==='approve'?'Aprobado':'Rechazado'));
+        window.close();
+      } catch(err) { console.error(err); alert('❌ Error al enviar'); }
+    }
+  </script>
 </body>
 </html>
-
-
