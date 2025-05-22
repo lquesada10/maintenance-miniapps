@@ -148,28 +148,40 @@
     async function atenderReporte(e) {
       e.preventDefault();
       const fd = new FormData();
+
+      // Datos principales
       ['id','costo','comentarios'].forEach(k => fd.append(k, document.getElementById(k).value));
 
+      // Chat ID
       const chatId = tg?.initDataUnsafe?.user?.id;
       if (chatId) {
         fd.append('chat_id', chatId);
+      } else {
+        alert('❌ No se pudo obtener tu chat ID. Asegúrate de abrir esta mini app desde Telegram.');
+        return;
       }
 
+      // Archivos
       const files = Array.from(document.getElementById('evidencia').files);
       if (files.length > 6) {
         alert('Máximo 6 archivos.');
         return;
       }
-
-      for (const f of files) {
-        const blob = f.type.startsWith('image/') ? await compressImage(f) : await compressVideo(f);
-        fd.append('evidencia', blob, f.name);
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const processed = f.type.startsWith('image/') ? await compressImage(f) : await compressVideo(f);
+        fd.append('evidencia', processed, f.name);
       }
 
+      // Fecha
       fd.append('fecha', new Date().toISOString().slice(0,19));
 
+      // Enviar
       try {
-        const res = await fetch('https://hook.us2.make.com/mthoenuwnpf4uwgkca2aofkrdefh7fxs', { method:'POST', body: fd });
+        const res = await fetch('https://hook.us2.make.com/mthoenuwnpf4uwgkca2aofkrdefh7fxs', {
+          method:'POST',
+          body: fd
+        });
         if (!res.ok) throw new Error(res.statusText);
         alert('✅ Actualización enviada');
         document.getElementById('form').reset();
@@ -181,3 +193,4 @@
   </script>
 </body>
 </html>
+
