@@ -97,8 +97,8 @@
       <input id="reportId" type="text" readonly />
     </div>
     <div class="form-group">
-      <label>Motivo de rechazo (si aplica)</label>
-      <textarea id="motivo" placeholder="Describe el motivo de rechazo..."></textarea>
+      <label>Motivo</label>
+      <textarea id="motivo" placeholder="Escribe el motivo..." required></textarea>
     </div>
     <button onclick="sendDecision('approve')">✅ Aprobar</button>
     <button class="reject" onclick="sendDecision('reject')">🔄 Rechazar y reenviar</button>
@@ -116,15 +116,15 @@
 
     async function sendDecision(decision) {
       const motivo = document.getElementById('motivo').value.trim();
-      if (decision === 'reject' && !motivo) {
-        alert('Por favor, justifica el motivo de rechazo.');
+      if (!motivo) {
+        alert('Por favor, escribe un motivo antes de continuar.');
         return;
       }
 
       const fd = new FormData();
       fd.append('reportId', document.getElementById('reportId').value);
       fd.append('decision', decision);
-      if (decision === 'reject') fd.append('motivo', motivo);
+      fd.append('motivo', motivo);
       fd.append('fecha', new Date().toISOString().slice(0, 19));
 
       const chatId = tg?.initDataUnsafe?.user?.id;
