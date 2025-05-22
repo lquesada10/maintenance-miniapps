@@ -8,11 +8,10 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
-      /* Mismos colores y fondo crema del otro estilo */
       --bg: #faf8f2;
       --card-bg: #fff8e1;
       --text: #333333;
-      --muted: #4caf50; /* etiquetas en verde */
+      --muted: #4caf50;
       --accent: #4caf50;
       --accent-hover: #43a047;
       --border: #e0e0e0;
@@ -91,7 +90,6 @@
 </head>
 <body>
   <div class="container">
-    <!-- Logo del supervisor -->
     <img src="logo LM mantenimientoverde.png" alt="Logo La Milagresa" class="logo" />
     <h2>👀 Revisión de Reporte</h2>
     <div class="form-group">
@@ -109,25 +107,46 @@
     const tg = window.Telegram?.WebApp;
     tg?.onEvent('themeChanged', () => {});
     tg?.ready();
-    document.addEventListener('DOMContentLoaded', ()=>{
+
+    document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(location.search);
       const id = params.get('reportId');
-      if(id) document.getElementById('reportId').value = id;
+      if (id) document.getElementById('reportId').value = id;
     });
+
     async function sendDecision(decision) {
       const motivo = document.getElementById('motivo').value.trim();
-      if(decision==='reject' && !motivo) { alert('Por favor, justifica el motivo de rechazo.'); return; }
+      if (decision === 'reject' && !motivo) {
+        alert('Por favor, justifica el motivo de rechazo.');
+        return;
+      }
+
       const fd = new FormData();
       fd.append('reportId', document.getElementById('reportId').value);
       fd.append('decision', decision);
-      if(decision==='reject') fd.append('motivo', motivo);
-      fd.append('fecha', new Date().toISOString().slice(0,19));
+      if (decision === 'reject') fd.append('motivo', motivo);
+      fd.append('fecha', new Date().toISOString().slice(0, 19));
+
+      const chatId = tg?.initDataUnsafe?.user?.id;
+      if (chatId) {
+        fd.append('chat_id', chatId);
+      } else {
+        alert('No se pudo obtener el chat ID desde Telegram.');
+        return;
+      }
+
       try {
-        const res = await fetch('https://hook.us2.make.com/nxhvctirgwkv31qbochatl8i9rc9clav', { method:'POST', body:fd });
-        if(!res.ok) throw new Error(res.statusText);
-        alert('✅ ' + (decision==='approve'?'Aprobado':'Rechazado'));
+        const res = await fetch('https://hook.us2.make.com/nxhvctirgwkv31qbochatl8i9rc9clav', {
+          method: 'POST',
+          body: fd
+        });
+        if (!res.ok) throw new Error(res.statusText);
+        alert('✅ ' + (decision === 'approve' ? 'Aprobado' : 'Rechazado'));
         window.close();
-      } catch(err) { console.error(err); alert('❌ Error al enviar'); }
+      } catch (err) {
+        console.error(err);
+        alert('❌ Error al enviar');
+      }
     }
   </script>
 </body>
