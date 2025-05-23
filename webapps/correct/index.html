@@ -116,7 +116,11 @@
     <form onsubmit="sendCorrection(event)">
       <div class="form-group">
         <label for="reportId">ID del Reporte</label>
-        <input id="reportId" type="text" readonly />
+        <input id="reportId" type="text" />
+      </div>
+      <div class="form-group">
+        <label for="chat_id">Chat ID</label>
+        <input id="chat_id" type="text" />
       </div>
       <div class="form-group">
         <label for="correccion">Detalle de la corrección</label>
@@ -138,7 +142,16 @@
     document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(location.search);
       const id = params.get('reportId');
-      if (id) document.getElementById('reportId').value = id;
+      const modoManual = params.get('modo') === 'manual';
+
+      const idField = document.getElementById('reportId');
+      if (id) idField.value = id;
+      idField.readOnly = !modoManual;
+
+      const chatField = document.getElementById('chat_id');
+      const chatId = tg?.initDataUnsafe?.user?.id;
+      if (chatId) chatField.value = chatId;
+      chatField.readOnly = !modoManual;
     });
 
     function compressImage(file) {
@@ -159,16 +172,8 @@
     async function sendCorrection(e) {
       e.preventDefault();
       const fd = new FormData();
-      fd.append('fecha', new Date().toISOString());
-      ['reportId', 'correccion'].forEach(k => fd.append(k, document.getElementById(k).value));
-
-      const chatId = tg?.initDataUnsafe?.user?.id;
-      if (chatId) {
-        fd.append('chat_id', chatId);
-      } else {
-        alert('❌ No se pudo obtener tu chat ID desde Telegram.');
-        return;
-      }
+      fd.append('fecha', new Date().toLocaleString('es-MX'));
+      ['reportId', 'correccion', 'chat_id'].forEach(k => fd.append(k, document.getElementById(k).value));
 
       const files = Array.from(document.getElementById('evidencia').files);
       if (files.length > 6) {
@@ -191,5 +196,6 @@
   </script>
 </body>
 </html>
+
 
 
