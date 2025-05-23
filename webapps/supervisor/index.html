@@ -93,11 +93,15 @@
     <img src="logo LM mantenimientoverde.png" alt="Logo La Milagresa" class="logo" />
     <h2>👀 Revisión de Reporte</h2>
     <div class="form-group">
-      <label>ID del Reporte</label>
-      <input id="reportId" type="text" readonly />
+      <label for="reportId">ID del Reporte</label>
+      <input id="reportId" type="text" />
     </div>
     <div class="form-group">
-      <label>Motivo</label>
+      <label for="chat_id">Chat ID</label>
+      <input id="chat_id" type="text" placeholder="Se rellena automáticamente o manual" />
+    </div>
+    <div class="form-group">
+      <label for="motivo">Motivo</label>
       <textarea id="motivo" placeholder="Escribe el motivo..." required></textarea>
     </div>
     <button onclick="sendDecision('approve')">✅ Aprobar</button>
@@ -110,8 +114,17 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(location.search);
+      const modoManual = params.get('modo') === 'manual';
+
       const id = params.get('reportId');
-      if (id) document.getElementById('reportId').value = id;
+      const idField = document.getElementById('reportId');
+      if (id) idField.value = id;
+      idField.readOnly = !modoManual;
+
+      const chatField = document.getElementById('chat_id');
+      const chatId = tg?.initDataUnsafe?.user?.id;
+      if (chatId) chatField.value = chatId;
+      chatField.readOnly = !modoManual;
     });
 
     async function sendDecision(decision) {
@@ -123,24 +136,17 @@
 
       const fd = new FormData();
       fd.append('reportId', document.getElementById('reportId').value);
+      fd.append('chat_id', document.getElementById('chat_id').value);
       fd.append('decision', decision);
       fd.append('motivo', motivo);
-      fd.append('fecha', new Date().toISOString().slice(0, 19));
-
-      const chatId = tg?.initDataUnsafe?.user?.id;
-      if (chatId) {
-        fd.append('chat_id', chatId);
-      } else {
-        alert('No se pudo obtener el chat ID desde Telegram.');
-        return;
-      }
+      fd.append('fecha', new Date().toLocaleString('es-MX'));
 
       try {
         const res = await fetch('https://hook.us2.make.com/nxhvctirgwkv31qbochatl8i9rc9clav', {
           method: 'POST',
           body: fd
         });
-        if (!res.ok) throw new Error(res.statusText);
+        if (!res.ok) throw new Error(await res.text());
         alert('✅ ' + (decision === 'approve' ? 'Aprobado' : 'Rechazado'));
         window.close();
       } catch (err) {
@@ -151,3 +157,4 @@
   </script>
 </body>
 </html>
+
