@@ -139,7 +139,7 @@
     document.getElementById("form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const id = document.getElementById("id").value;
-      const chat_id = document.getElementById("chat_id").value;
+      const chat_id_tecnico = document.getElementById("chat_id").value;
       const chat_id_supervisor = document.getElementById("chat_id_supervisor").value;
       const costo = parseFloat(document.getElementById("costo").value);
       const comentarios = document.getElementById("comentarios").value;
@@ -153,7 +153,7 @@
 
         const { error } = await supabase.from("AtencionReportes").insert([{
           id,
-          chat_id,
+          chat_id_tecnico,
           chat_id_supervisor,
           costo,
           comentarios,
