@@ -6,12 +6,13 @@
   <title>🔧 Atender Reporte</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     :root {
       --bg: #faf8f2;
       --card-bg: #fff8e1;
-      --text: #333333;
-      --label-color: #2196f3;
+      --text: #333;
+      --label: #2196f3;
       --accent: #0088cc;
       --accent-hover: #007bb5;
       --border: #e0e0e0;
@@ -25,7 +26,6 @@
       margin: 0;
       padding: 0;
       background: var(--bg);
-      color: var(--text);
       font-family: var(--font-body);
       display: flex;
       align-items: center;
@@ -37,158 +37,138 @@
       padding: calc(var(--spacing) * 1.5);
       border-radius: var(--radius);
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      width: 100%;
       max-width: 480px;
-      animation: fadeIn 0.4s ease;
+      width: 100%;
     }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
-    .logo { display: block; margin: 0 auto 1rem; width: 300px; height: auto; }
     h2 {
-      margin: 0 0 1rem;
-      font-family: var(--font-heading);
-      font-weight: 700;
       text-align: center;
+      font-family: var(--font-heading);
       color: var(--accent);
-      font-size: 2.5rem;
-      line-height: 1.2;
     }
-    .form-group { margin-top: var(--spacing); }
     label {
+      margin-top: 1rem;
       display: block;
-      font-size: 0.9rem;
-      color: var(--label-color);
-      margin-bottom: 0.25rem;
-      font-weight: 500;
+      font-weight: 600;
+      color: var(--label);
     }
-    input[type="text"], input[type="number"], textarea, input[type="file"] {
+    input, textarea {
       width: 100%;
       padding: 0.75rem;
-      border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: var(--bg);
-      color: var(--text);
+      border: 1px solid var(--border);
+      margin-top: 0.25rem;
       font-family: var(--font-body);
-      transition: border-color 0.2s;
     }
-    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
     button {
+      margin-top: 1.5rem;
       width: 100%;
       padding: 1rem;
-      margin-top: var(--spacing);
       font-family: var(--font-heading);
-      font-weight: 700;
-      color: #fff;
       background: var(--accent);
+      color: white;
       border: none;
       border-radius: var(--radius);
-      cursor: pointer;
-      transition: background 0.2s;
       font-size: 1rem;
+      cursor: pointer;
     }
-    button:hover { background: var(--accent-hover); }
+    button:hover {
+      background: var(--accent-hover);
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <img src="logo LM mantenimientoazul.png" alt="Logo La Milagresa" class="logo" />
     <h2>🔧 Atender Reporte</h2>
-    <form id="form" onsubmit="atenderReporte(event)">
-      <div class="form-group">
-        <label for="id">ID interno</label>
-        <input id="id" name="id" type="text" placeholder="Se rellena solo" />
-      </div>
-      <div class="form-group">
-        <label for="chat_id">Chat ID</label>
-        <input id="chat_id" name="chat_id" type="text" placeholder="Se rellena automáticamente o manual" />
-      </div>
-      <div class="form-group">
-        <label for="costo">Costo</label>
-        <input id="costo" name="costo" type="number" inputmode="decimal" pattern="[0-9]+([\.,][0-9]{1,2})?" placeholder="0.00" min="0" step="0.01" required />
-      </div>
-      <div class="form-group">
-        <label for="comentarios">Comentarios</label>
-        <textarea id="comentarios" name="comentarios" required></textarea>
-      </div>
-      <div class="form-group">
-        <label for="evidencia">Evidencia máx 6 archivos</label>
-        <input id="evidencia" name="evidencia" type="file" multiple accept="image/*,video/*" />
-      </div>
-      <button type="submit">Enviar actualización</button>
+    <form id="form">
+      <label for="id">ID del Reporte</label>
+      <input type="text" id="id" readonly />
+
+      <label for="chat_id">Chat ID Técnico</label>
+      <input type="text" id="chat_id" readonly />
+
+      <label for="chat_id_supervisor">Chat ID Supervisor</label>
+      <input type="text" id="chat_id_supervisor" />
+
+      <label for="costo">Costo</label>
+      <input type="number" id="costo" placeholder="0.00" step="0.01" required />
+
+      <label for="comentarios">Comentarios</label>
+      <textarea id="comentarios" required></textarea>
+
+      <label for="evidencia">Evidencia (máx 6 archivos)</label>
+      <input type="file" id="evidencia" multiple accept="image/*,video/*" />
+
+      <button type="submit">Enviar</button>
     </form>
   </div>
   <script>
-    const tg = window.Telegram?.WebApp;
-    tg?.onEvent('themeChanged', applyTheme);
-    tg?.ready();
+    const tg = window.Telegram.WebApp;
+    const supabase = window.supabase.createClient(
+      "https://gaiqdzjctyscufkljxvm.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ"
+    );
 
-    function applyTheme() {}
+    tg.ready();
 
     document.addEventListener('DOMContentLoaded', () => {
-      applyTheme();
-      const params = new URLSearchParams(window.location.search);
-      const idValue = params.get('id') || params.get('reportId');
+      const params = new URLSearchParams(location.search);
       const modoManual = params.get('modo') === 'manual';
+      const id = params.get('id') || '';
+      const supervisor = params.get('chatSupervisor') || '';
+      const tecnico = tg?.initDataUnsafe?.user?.id || '';
 
-      const idField = document.getElementById('id');
-      const chatField = document.getElementById('chat_id');
+      document.getElementById('id').value = id;
+      document.getElementById('chat_id').value = tecnico;
+      document.getElementById('chat_id_supervisor').value = supervisor;
 
-      if (idValue) idField.value = idValue;
-      idField.readOnly = !modoManual;
-
-      const chatId = tg?.initDataUnsafe?.user?.id;
-      if (chatId) chatField.value = chatId;
-      chatField.readOnly = !modoManual;
+      document.getElementById('id').readOnly = !modoManual;
+      document.getElementById('chat_id').readOnly = !modoManual;
+      document.getElementById('chat_id_supervisor').readOnly = !modoManual;
     });
 
-    function compressImage(file, maxWidth = 1200, quality = 0.7) {
-      return new Promise(resolve => {
-        const img = new Image();
-        img.onload = () => {
-          const scale = Math.min(1, maxWidth / img.width);
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width * scale;
-          canvas.height = img.height * scale;
-          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', quality);
-        };
-        const reader = new FileReader();
-        reader.onload = e => img.src = e.target.result;
-        reader.readAsDataURL(file);
-      });
+    async function subirArchivo(file, path) {
+      const ext = file.name.split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "");
+      const filename = `${crypto.randomUUID()}.${ext}`;
+      const fullPath = `${path}/${filename}`;
+      const { error } = await supabase.storage.from("evidencias").upload(fullPath, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from("evidencias").getPublicUrl(fullPath);
+      return data.publicUrl;
     }
 
-    async function compressVideo(file) { return file; }
-
-    async function atenderReporte(e) {
+    document.getElementById("form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const fd = new FormData();
-      ['id','chat_id','costo','comentarios'].forEach(k => fd.append(k, document.getElementById(k).value));
+      const id = document.getElementById("id").value;
+      const chat_id = document.getElementById("chat_id").value;
+      const chat_id_supervisor = document.getElementById("chat_id_supervisor").value;
+      const costo = parseFloat(document.getElementById("costo").value);
+      const comentarios = document.getElementById("comentarios").value;
+      const files = Array.from(document.getElementById("evidencia").files);
 
-      const files = Array.from(document.getElementById('evidencia').files);
-      if (files.length > 6) {
-        alert('Máximo 6 archivos.');
-        return;
-      }
-      for (const f of files) {
-        const processed = f.type.startsWith('image/') ? await compressImage(f) : await compressVideo(f);
-        fd.append('evidencia', processed, f.name);
-      }
-
-      fd.append('fecha', new Date().toLocaleString('es-MX'));
+      if (files.length > 6) return alert("Máximo 6 archivos");
 
       try {
-        const res = await fetch('https://hook.us2.make.com/mthoenuwnpf4uwgkca2aofkrdefh7fxs', {
-          method:'POST',
-          body: fd
-        });
-        if (!res.ok) throw new Error(await res.text());
-        alert('✅ Actualización enviada');
-        document.getElementById('form').reset();
+        const urls = [];
+        for (const f of files) urls.push(await subirArchivo(f, `Atencion/${id}`));
+
+        const { error } = await supabase.from("AtencionReportes").insert([{
+          id,
+          chat_id,
+          chat_id_supervisor,
+          costo,
+          comentarios,
+          evidencia: urls,
+          fecha: new Date().toISOString()
+        }]);
+
+        if (error) throw error;
+        alert("✅ Actualización enviada correctamente");
+        document.getElementById("form").reset();
       } catch (err) {
         console.error(err);
-        alert('❌ Error al enviar');
+        alert("❌ Error al enviar a Supabase");
       }
-    }
+    });
   </script>
 </body>
 </html>
