@@ -87,7 +87,7 @@
       <input type="text" id="chat_id" readonly />
 
       <label for="chat_id_supervisor">Chat ID Supervisor</label>
-      <input type="text" id="chat_id_supervisor" />
+      <input type="text" id="chat_id_supervisor" readonly />
 
       <label for="costo">Costo</label>
       <input type="number" id="costo" placeholder="0.00" step="0.01" required />
@@ -101,6 +101,7 @@
       <button type="submit">Enviar</button>
     </form>
   </div>
+
   <script>
     const tg = window.Telegram.WebApp;
     const supabase = window.supabase.createClient(
@@ -149,7 +150,9 @@
 
       try {
         const urls = [];
-        for (const f of files) urls.push(await subirArchivo(f, `Atencion/${id}`));
+        for (const f of files) {
+          urls.push(await subirArchivo(f, `Atencion/${id}`));
+        }
 
         const { error } = await supabase.from("AtencionReportes").insert([{
           id,
@@ -158,7 +161,8 @@
           costo,
           comentarios,
           evidencia: urls,
-          fecha: new Date().toISOString()
+          fecha_atencion: new Date().toISOString(),
+          notificado: false
         }]);
 
         if (error) throw error;
@@ -166,7 +170,7 @@
         document.getElementById("form").reset();
       } catch (err) {
         console.error(err);
-        alert("❌ Error al enviar a Supabase");
+        alert("❌ Error al enviar a Supabase. Mira la consola.");
       }
     });
   </script>
