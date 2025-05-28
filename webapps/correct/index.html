@@ -41,11 +41,6 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       width: 100%;
       max-width: 480px;
-      animation: fadeIn 0.4s ease;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px);}  
-      to   { opacity: 1; transform: translateY(0);}  
     }
     .logo {
       display: block;
@@ -60,11 +55,8 @@
       text-align: center;
       color: var(--accent);
       font-size: 2.5rem;
-      line-height: 1.2;
     }
-    .form-group {
-      margin-top: var(--spacing);
-    }
+    .form-group { margin-top: var(--spacing); }
     label {
       display: block;
       font-size: 0.9rem;
@@ -79,11 +71,6 @@
       border-radius: var(--radius);
       background: var(--bg);
       color: var(--text);
-      transition: border-color 0.2s;
-    }
-    input:focus, textarea:focus {
-      outline: none;
-      border-color: var(--accent);
     }
     button {
       width: 100%;
@@ -95,9 +82,8 @@
       background: var(--accent);
       border: none;
       border-radius: var(--radius);
-      cursor: pointer;
-      transition: background 0.2s;
       font-size: 1rem;
+      cursor: pointer;
     }
     button:hover {
       background: var(--accent-hover);
@@ -108,22 +94,22 @@
   <div class="container">
     <img src="logo LM mantenimiento.png" alt="Logo La Milagresa" class="logo" />
     <h2>✏️ Corregir Reporte</h2>
-    <form onsubmit="sendCorrection(event)">
+    <form id="form">
       <div class="form-group">
         <label for="reportId">ID del Reporte</label>
-        <input id="reportId" name="reportId" type="text" />
+        <input id="reportId" name="reportId" type="text" readonly />
       </div>
       <div class="form-group">
         <label for="chat_id">Chat ID Técnico</label>
-        <input id="chat_id" name="chat_id" type="text" />
+        <input id="chat_id" name="chat_id" type="text" readonly />
       </div>
       <div class="form-group">
         <label for="correccion">Detalle de la corrección</label>
-        <textarea id="correccion" required placeholder="Describe los cambios…"></textarea>
+        <textarea id="correccion" name="correccion" required></textarea>
       </div>
       <div class="form-group">
-        <label>Evidencia (hasta 6 archivos)</label>
-        <input id="evidencia" type="file" multiple accept="image/*,video/*" />
+        <label for="evidencia">Evidencia (hasta 6 archivos)</label>
+        <input id="evidencia" type="file" name="evidencia" multiple accept="image/*,video/*" />
       </div>
       <input type="hidden" id="chat_supervisor" name="chat_supervisor" />
       <button type="submit">Enviar Corrección</button>
@@ -131,64 +117,59 @@
   </div>
 
   <script>
-    const tg = window.Telegram?.WebApp;
-    tg?.ready();
+    const tg = window.Telegram.WebApp;
     const supabase = window.supabase.createClient(
-      'https://gaiqdzjctyscufkljxvm.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ'
+      "https://gaiqdzjctyscufkljxvm.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ"
     );
 
-    document.addEventListener('DOMContentLoaded', () => {
+    tg.ready();
+
+    document.addEventListener("DOMContentLoaded", () => {
       const params = new URLSearchParams(location.search);
-      const id = params.get('reportId');
-      const supervisor = params.get('chatSupervisor');
+      const id = params.get("id");
+      const chatSupervisor = params.get("chatSupervisor") || "";
       const chatId = tg?.initDataUnsafe?.user?.id;
 
-      if (id) document.getElementById('reportId').value = id;
-      document.getElementById('reportId').readOnly = true;
-
-      if (chatId) document.getElementById('chat_id').value = chatId;
-      document.getElementById('chat_id').readOnly = true;
-
-      if (supervisor) document.getElementById('chat_supervisor').value = supervisor;
+      if (id) document.getElementById("reportId").value = id;
+      if (chatId) document.getElementById("chat_id").value = chatId;
+      if (chatSupervisor) document.getElementById("chat_supervisor").value = chatSupervisor;
     });
 
-    async function sendCorrection(e) {
+    document.getElementById("form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const evidenciaInput = document.getElementById('evidencia');
-      const files = Array.from(evidenciaInput.files);
-      if (files.length > 6) return alert('Máximo 6 archivos');
 
-      const data = {
-        id: document.getElementById('reportId').value,
-        chat_id_tecnico: document.getElementById('chat_id').value,
-        chat_id_supervisor: document.getElementById('chat_supervisor').value,
-        correccion: document.getElementById('correccion').value,
-        fecha: new Date().toISOString(),
-        evidencia: []
-      };
+      const form = document.getElementById("form");
+      const formData = new FormData(form);
+      const evidencia = document.getElementById("evidencia").files;
 
-      for (const file of files) {
-        const reader = new FileReader();
-        await new Promise(resolve => {
-          reader.onload = () => {
-            data.evidencia.push({ name: file.name, content: reader.result });
-            resolve();
-          };
-          reader.readAsDataURL(file);
-        });
+      const filesArray = [];
+      for (let i = 0; i < evidencia.length; i++) {
+        const file = evidencia[i];
+        const buffer = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+        filesArray.push({ name: file.name, type: file.type, content: base64 });
       }
 
+      const data = {
+        id: formData.get("reportId"),
+        chat_id_tecnico: formData.get("chat_id"),
+        chat_id_supervisor: formData.get("chat_supervisor"),
+        correccion: formData.get("correccion"),
+        fecha: new Date().toISOString(),
+        evidencia: filesArray
+      };
+
       try {
-        const { error } = await supabase.from('CorreccionesReportes').insert([data]);
+        const { error } = await supabase.from("CorreccionesReportes").insert([data]);
         if (error) throw error;
-        alert('✅ Corrección enviada');
+        alert("✅ Corrección enviada correctamente");
         window.close();
       } catch (err) {
         console.error(err);
-        alert('❌ Error al enviar');
+        alert("❌ Error al enviar a Supabase");
       }
-    }
+    });
   </script>
 </body>
 </html>
