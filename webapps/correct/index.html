@@ -11,8 +11,8 @@
     :root {
       --bg: #faf8f2;
       --card-bg: #fff8e1;
-      --text: #333333;
-      --muted: #666666;
+      --text: #333;
+      --label: #f57c00;
       --accent: #ffa726;
       --accent-hover: #fb8c00;
       --border: #e0e0e0;
@@ -26,9 +26,7 @@
       margin: 0;
       padding: 0;
       background: var(--bg);
-      color: var(--text);
       font-family: var(--font-body);
-      line-height: 1.6;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -39,47 +37,35 @@
       padding: calc(var(--spacing) * 1.5);
       border-radius: var(--radius);
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      width: 100%;
       max-width: 480px;
-    }
-    .logo {
-      display: block;
-      margin: 0 auto 1.5rem;
-      width: 300px;
-      height: auto;
+      width: 100%;
     }
     h2 {
-      margin-top: 0;
-      font-family: var(--font-heading);
-      font-weight: 700;
       text-align: center;
+      font-family: var(--font-heading);
       color: var(--accent);
-      font-size: 2.5rem;
     }
-    .form-group { margin-top: var(--spacing); }
     label {
+      margin-top: 1rem;
       display: block;
-      font-size: 0.9rem;
-      color: var(--muted);
-      margin-bottom: 0.25rem;
+      font-weight: 600;
+      color: var(--label);
     }
-    input[type="text"], textarea, input[type="file"] {
+    input, textarea {
       width: 100%;
       padding: 0.75rem;
-      font-family: var(--font-body);
-      border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: var(--bg);
-      color: var(--text);
+      border: 1px solid var(--border);
+      margin-top: 0.25rem;
+      font-family: var(--font-body);
     }
     button {
+      margin-top: 1.5rem;
       width: 100%;
       padding: 1rem;
-      margin-top: var(--spacing);
       font-family: var(--font-heading);
-      font-weight: 700;
-      color: #fff;
       background: var(--accent);
+      color: white;
       border: none;
       border-radius: var(--radius);
       font-size: 1rem;
@@ -92,26 +78,23 @@
 </head>
 <body>
   <div class="container">
-    <img src="logo LM mantenimiento.png" alt="Logo La Milagresa" class="logo" />
     <h2>✏️ Corregir Reporte</h2>
     <form id="form">
-      <div class="form-group">
-        <label for="reportId">ID del Reporte</label>
-        <input id="reportId" name="reportId" type="text" readonly />
-      </div>
-      <div class="form-group">
-        <label for="chat_id">Chat ID Técnico</label>
-        <input id="chat_id" name="chat_id" type="text" readonly />
-      </div>
-      <div class="form-group">
-        <label for="correccion">Detalle de la corrección</label>
-        <textarea id="correccion" name="correccion" required></textarea>
-      </div>
-      <div class="form-group">
-        <label for="evidencia">Evidencia (hasta 6 archivos)</label>
-        <input id="evidencia" type="file" name="evidencia" multiple accept="image/*,video/*" />
-      </div>
-      <input type="hidden" id="chat_supervisor" name="chat_supervisor" />
+      <label for="id">ID del Reporte</label>
+      <input type="text" id="id" readonly />
+
+      <label for="chat_id">Chat ID Técnico</label>
+      <input type="text" id="chat_id" readonly />
+
+      <label for="chat_id_supervisor">Chat ID Supervisor</label>
+      <input type="text" id="chat_id_supervisor" readonly />
+
+      <label for="correccion">Detalle de la corrección</label>
+      <textarea id="correccion" required></textarea>
+
+      <label for="evidencia">Evidencia (hasta 6 archivos)</label>
+      <input type="file" id="evidencia" multiple accept="image/*,video/*" />
+
       <button type="submit">Enviar Corrección</button>
     </form>
   </div>
@@ -125,51 +108,67 @@
 
     tg.ready();
 
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(location.search);
-      const id = params.get("id");
-      const chatSupervisor = params.get("chatSupervisor") || "";
-      const chatId = tg?.initDataUnsafe?.user?.id;
+      const modoManual = params.get('modo') === 'manual';
+      const id = params.get('id') || '';
+      const supervisor = params.get('chatSupervisor') || '';
+      const tecnico = tg?.initDataUnsafe?.user?.id || '';
 
-      if (id) document.getElementById("reportId").value = id;
-      if (chatId) document.getElementById("chat_id").value = chatId;
-      if (chatSupervisor) document.getElementById("chat_supervisor").value = chatSupervisor;
+      document.getElementById('id').value = id;
+      document.getElementById('chat_id').value = tecnico;
+      document.getElementById('chat_id_supervisor').value = supervisor;
+
+      document.getElementById('id').readOnly = !modoManual;
+      document.getElementById('chat_id').readOnly = !modoManual;
+      document.getElementById('chat_id_supervisor').readOnly = !modoManual;
     });
+
+    async function subirArchivo(file, path) {
+      const ext = file.name.split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "");
+      const filename = `${crypto.randomUUID()}.${ext}`;
+      const fullPath = `${path}/${filename}`;
+      const { error } = await supabase.storage.from("evidencias").upload(fullPath, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from("evidencias").getPublicUrl(fullPath);
+      return data.publicUrl;
+    }
 
     document.getElementById("form").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const id = document.getElementById("id").value;
+      const chat_id_tecnico = document.getElementById("chat_id").value;
+      const chat_id_supervisor = document.getElementById("chat_id_supervisor").value;
+      const correccion = document.getElementById("correccion").value;
+      const files = Array.from(document.getElementById("evidencia").files);
 
-      const form = document.getElementById("form");
-      const formData = new FormData(form);
-      const evidencia = document.getElementById("evidencia").files;
-
-      const filesArray = [];
-      for (let i = 0; i < evidencia.length; i++) {
-        const file = evidencia[i];
-        const buffer = await file.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-        filesArray.push({ name: file.name, type: file.type, content: base64 });
-      }
-
-      const data = {
-        id: formData.get("reportId"),
-        chat_id_tecnico: formData.get("chat_id"),
-        chat_id_supervisor: formData.get("chat_supervisor"),
-        correccion: formData.get("correccion"),
-        fecha: new Date().toISOString(),
-        evidencia: filesArray
-      };
+      if (files.length > 6) return alert("Máximo 6 archivos");
 
       try {
-        const { error } = await supabase.from("CorreccionesReportes").insert([data]);
+        const urls = [];
+        for (const f of files) {
+          urls.push(await subirArchivo(f, `Correcciones/${id}`));
+        }
+
+        const { error } = await supabase.from("CorreccionesReportes").insert([{
+          id,
+          chat_id_tecnico,
+          chat_id_supervisor,
+          correccion,
+          evidencia: urls,
+          fecha_correccion: new Date().toISOString(),
+          notificado: false
+        }]);
+
         if (error) throw error;
         alert("✅ Corrección enviada correctamente");
-        window.close();
+        document.getElementById("form").reset();
       } catch (err) {
         console.error(err);
-        alert("❌ Error al enviar a Supabase");
+        alert("❌ Error al enviar a Supabase. Mira la consola.");
       }
     });
   </script>
 </body>
 </html>
+
