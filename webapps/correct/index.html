@@ -6,6 +6,7 @@
   <title>✏️ Corregir Reporte</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     :root {
       --bg: #faf8f2;
@@ -84,12 +85,6 @@
       outline: none;
       border-color: var(--accent);
     }
-    .evidence-label {
-      margin-top: var(--spacing);
-      font-size: 0.9rem;
-      color: var(--muted);
-      margin-bottom: 0.25rem;
-    }
     button {
       width: 100%;
       padding: 1rem;
@@ -116,76 +111,77 @@
     <form onsubmit="sendCorrection(event)">
       <div class="form-group">
         <label for="reportId">ID del Reporte</label>
-        <input id="reportId" type="text" />
+        <input id="reportId" name="reportId" type="text" />
       </div>
       <div class="form-group">
-        <label for="chat_id">Chat ID</label>
-        <input id="chat_id" type="text" />
+        <label for="chat_id">Chat ID Técnico</label>
+        <input id="chat_id" name="chat_id" type="text" />
       </div>
       <div class="form-group">
         <label for="correccion">Detalle de la corrección</label>
         <textarea id="correccion" required placeholder="Describe los cambios…"></textarea>
       </div>
       <div class="form-group">
-        <div class="evidence-label">Evidencia y multimedia — hasta 6 archivos</div>
+        <label>Evidencia (hasta 6 archivos)</label>
         <input id="evidencia" type="file" multiple accept="image/*,video/*" />
       </div>
+      <input type="hidden" id="chat_supervisor" name="chat_supervisor" />
       <button type="submit">Enviar Corrección</button>
     </form>
   </div>
+
   <script>
     const tg = window.Telegram?.WebApp;
-    tg?.onEvent('themeChanged', applyTheme);
     tg?.ready();
-    function applyTheme() {}
+    const supabase = window.supabase.createClient(
+      'https://gaiqdzjctyscufkljxvm.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ'
+    );
 
     document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(location.search);
       const id = params.get('reportId');
-      const modoManual = params.get('modo') === 'manual';
-
-      const idField = document.getElementById('reportId');
-      if (id) idField.value = id;
-      idField.readOnly = !modoManual;
-
-      const chatField = document.getElementById('chat_id');
+      const supervisor = params.get('chatSupervisor');
       const chatId = tg?.initDataUnsafe?.user?.id;
-      if (chatId) chatField.value = chatId;
-      chatField.readOnly = !modoManual;
+
+      if (id) document.getElementById('reportId').value = id;
+      document.getElementById('reportId').readOnly = true;
+
+      if (chatId) document.getElementById('chat_id').value = chatId;
+      document.getElementById('chat_id').readOnly = true;
+
+      if (supervisor) document.getElementById('chat_supervisor').value = supervisor;
     });
-
-    function compressImage(file) {
-      return new Promise(res => {
-        const img = new Image(); img.onload = () => {
-          const c = document.createElement('canvas');
-          const scale = Math.min(1, 1200 / img.width);
-          c.width = img.width * scale; c.height = img.height * scale;
-          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-          c.toBlob(b => res(new File([b], file.name, { type: 'image/jpeg' })), 'image/jpeg', 0.7);
-        };
-        const r = new FileReader(); r.onload = e => img.src = e.target.result; r.readAsDataURL(file);
-      });
-    }
-
-    async function compressVideo(file) { return file; }
 
     async function sendCorrection(e) {
       e.preventDefault();
-      const fd = new FormData();
-      fd.append('fecha', new Date().toLocaleString('es-MX'));
-      ['reportId', 'correccion', 'chat_id'].forEach(k => fd.append(k, document.getElementById(k).value));
+      const evidenciaInput = document.getElementById('evidencia');
+      const files = Array.from(evidenciaInput.files);
+      if (files.length > 6) return alert('Máximo 6 archivos');
 
-      const files = Array.from(document.getElementById('evidencia').files);
-      if (files.length > 6) {
-        alert('Máximo 6 archivos.');
-        return;
+      const data = {
+        id: document.getElementById('reportId').value,
+        chat_id_tecnico: document.getElementById('chat_id').value,
+        chat_id_supervisor: document.getElementById('chat_supervisor').value,
+        correccion: document.getElementById('correccion').value,
+        fecha: new Date().toISOString(),
+        evidencia: []
+      };
+
+      for (const file of files) {
+        const reader = new FileReader();
+        await new Promise(resolve => {
+          reader.onload = () => {
+            data.evidencia.push({ name: file.name, content: reader.result });
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
       }
-      for (let f of files) {
-        fd.append('evidencia', f.type.startsWith('image/') ? await compressImage(f) : await compressVideo(f));
-      }
+
       try {
-        const res = await fetch('https://hook.us2.make.com/pautfhijd3rvo57t84czgs87mplnh3qd', { method: 'POST', body: fd });
-        if (!res.ok) throw res.statusText;
+        const { error } = await supabase.from('CorreccionesReportes').insert([data]);
+        if (error) throw error;
         alert('✅ Corrección enviada');
         window.close();
       } catch (err) {
@@ -196,6 +192,3 @@
   </script>
 </body>
 </html>
-
-
-
