@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <style>/* se conserva el estilo original que te gusta */
+  <style>
     :root {
       --bg: #faf8f2;
       --card-bg: #fff8e1;
@@ -106,7 +106,7 @@
     const tg = window.Telegram.WebApp;
     const supabase = window.supabase.createClient(
       "https://gaiqdzjctyscufkljxvm.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ"
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     );
 
     tg.ready();
@@ -138,8 +138,9 @@
     });
 
     async function enviarDecision(decision) {
+      const id = document.getElementById("reportId").value;
       const data = {
-        id: document.getElementById("reportId").value,
+        id,
         chat_id_supervisor: document.getElementById("chat_id").value,
         chat_id_tecnico: document.getElementById("chat_tecnico").value,
         decision,
@@ -148,8 +149,13 @@
       };
 
       try {
-        const { error } = await supabase.from("AprobacionReportes").insert([data]);
-        if (error) throw error;
+        const { data: existing } = await supabase.from("AprobacionReportes").select("id").eq("id", id);
+
+        const res = existing?.length
+          ? await supabase.from("AprobacionReportes").update(data).eq("id", id)
+          : await supabase.from("AprobacionReportes").insert([data]);
+
+        if (res.error) throw res.error;
         alert(`✅ Reporte ${decision}`);
         window.close();
       } catch (err) {
@@ -160,3 +166,4 @@
   </script>
 </body>
 </html>
+
