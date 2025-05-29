@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>👀 Revisión de Reporte</title>
+  <title>✏️ Corregir Reporte</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,10 +11,10 @@
     :root {
       --bg: #faf8f2;
       --card-bg: #fff8e1;
-      --text: #333333;
-      --muted: #4caf50;
-      --accent: #4caf50;
-      --accent-hover: #43a047;
+      --text: #333;
+      --label: #f57c00;
+      --accent: #ffa726;
+      --accent-hover: #fb8c00;
       --border: #e0e0e0;
       --radius: 8px;
       --spacing: 1rem;
@@ -26,7 +26,6 @@
       margin: 0;
       padding: 0;
       background: var(--bg);
-      color: var(--text);
       font-family: var(--font-body);
       display: flex;
       align-items: center;
@@ -38,10 +37,9 @@
       padding: calc(var(--spacing) * 1.5);
       border-radius: var(--radius);
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      width: 100%; max-width: 480px;
-      animation: fadeIn 0.4s ease;
+      max-width: 480px;
+      width: 100%;
     }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
     .logo {
       display: block;
       margin: 0 auto 1rem;
@@ -49,69 +47,63 @@
       height: auto;
     }
     h2 {
-      margin: 0 0 1rem;
-      font-family: var(--font-heading);
-      font-weight: 700;
       text-align: center;
+      font-family: var(--font-heading);
       color: var(--accent);
-      font-size: 2.5rem;
+      margin-bottom: 1rem;
     }
-    .form-group { margin-top: var(--spacing); }
     label {
+      margin-top: 1rem;
       display: block;
-      font-size: 0.9rem;
-      color: var(--muted);
-      margin-bottom: 0.25rem;
+      font-weight: 600;
+      color: var(--label);
     }
-    input[type="text"], textarea {
-      width: 100%; padding: 0.75rem;
-      border: 1px solid var(--border);
+    input, textarea {
+      width: 100%;
+      padding: 0.75rem;
       border-radius: var(--radius);
-      background: var(--bg);
-      color: var(--text);
+      border: 1px solid var(--border);
+      margin-top: 0.25rem;
+      font-family: var(--font-body);
     }
     button {
-      width: 100%; padding: 1rem;
-      margin-top: var(--spacing);
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 1rem;
       font-family: var(--font-heading);
-      font-weight: 700;
-      color: #fff;
       background: var(--accent);
+      color: white;
       border: none;
       border-radius: var(--radius);
       font-size: 1rem;
       cursor: pointer;
     }
-    button.reject { background: #dc3545; }
-    #statusMsg {
-      margin-top: 1rem;
-      font-size: 0.95rem;
-      text-align: center;
-      color: var(--text);
+    button:hover {
+      background: var(--accent-hover);
     }
   </style>
 </head>
 <body>
   <div class="container">
     <img src="logo LM mantenimiento.png" alt="Logo La Milagresa" class="logo" />
-    <h2>👀 Revisión de Reporte</h2>
+    <h2>✏️ Corregir Reporte</h2>
     <form id="form">
-      <div class="form-group">
-        <label for="reportId">ID del Reporte</label>
-        <input id="reportId" name="reportId" type="text" />
-      </div>
-      <div class="form-group">
-        <label for="chat_id">Chat ID Supervisor</label>
-        <input id="chat_id" name="chat_id" type="text" placeholder="Se rellena automáticamente o manual" />
-      </div>
-      <div class="form-group">
-        <label for="motivo">Motivo</label>
-        <textarea id="motivo" name="motivo" placeholder="Escribe el motivo..." required></textarea>
-      </div>
-      <input type="hidden" id="chat_tecnico" name="chat_tecnico" />
-      <button type="submit">✅ Aprobar</button>
-      <button type="button" class="reject" onclick="rechazar()">🔄 Rechazar y reenviar</button>
-      <p id="statusMsg"></p>
+      <label for="id">ID del Reporte</label>
+      <input type="text" id="id" readonly />
+
+      <label for="chat_id">Chat ID Técnico</label>
+      <input type="text" id="chat_id" readonly />
+
+      <label for="chat_id_supervisor">Chat ID Supervisor</label>
+      <input type="text" id="chat_id_supervisor" readonly />
+
+      <label for="correccion">Detalle de la corrección</label>
+      <textarea id="correccion" required></textarea>
+
+      <label for="evidencia">Evidencia (hasta 6 archivos)</label>
+      <input type="file" id="evidencia" multiple accept="image/*,video/*" />
+
+      <button type="submit">Enviar Corrección</button>
     </form>
   </div>
 
@@ -121,82 +113,70 @@
       "https://gaiqdzjctyscufkljxvm.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ"
     );
+
     tg.ready();
 
-    document.addEventListener("DOMContentLoaded", async () => {
+    document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(location.search);
-      const modoManual = params.get("modo") === "manual";
-      const fromCorrection = params.get("fromCorrection") === "true";
-      const id = params.get("id") || params.get("reportId");
-      const tecnico = params.get("chatTecnico") || "";
-      const chatId = tg?.initDataUnsafe?.user?.id;
+      const modoManual = params.get('modo') === 'manual';
+      const id = params.get('id') || '';
+      const supervisor = params.get('chatSupervisor') || '';
+      const tecnico = tg?.initDataUnsafe?.user?.id || '';
 
-      if (id) document.getElementById("reportId").value = id;
-      document.getElementById("reportId").readOnly = !modoManual;
+      document.getElementById('id').value = id;
+      document.getElementById('chat_id').value = tecnico;
+      document.getElementById('chat_id_supervisor').value = supervisor;
 
-      if (chatId) document.getElementById("chat_id").value = chatId;
-      document.getElementById("chat_id").readOnly = !modoManual;
-
-      document.getElementById("chat_tecnico").value = tecnico;
-
-      const { data: existing } = await supabase
-        .from("AprobacionReportes")
-        .select("*")
-        .eq("id", id);
-
-      if (
-        existing &&
-        existing.length > 0 &&
-        existing[0].decision === "aprobar" &&
-        !fromCorrection
-      ) {
-        document.getElementById("statusMsg").innerText = "✅ Ya aprobado anteriormente.";
-        document.querySelector("button[type='submit']").disabled = true;
-        document.querySelector("button.reject").disabled = true;
-      }
+      document.getElementById('id').readOnly = !modoManual;
+      document.getElementById('chat_id').readOnly = !modoManual;
+      document.getElementById('chat_id_supervisor').readOnly = !modoManual;
     });
 
-    async function rechazar() {
-      document.getElementById("form").reportValidity();
-      enviarDecision("rechazar");
+    async function subirArchivo(file, path) {
+      const ext = file.name.split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "");
+      const filename = ${crypto.randomUUID()}.${ext};
+      const fullPath = ${path}/${filename};
+      const { error } = await supabase.storage.from("evidencias").upload(fullPath, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from("evidencias").getPublicUrl(fullPath);
+      return data.publicUrl;
     }
 
-    document.getElementById("form").addEventListener("submit", e => {
+    document.getElementById("form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      enviarDecision("aprobar");
-    });
+      const id = document.getElementById("id").value;
+      const chat_id_tecnico = document.getElementById("chat_id").value;
+      const chat_id_supervisor = document.getElementById("chat_id_supervisor").value;
+      const correccion = document.getElementById("correccion").value;
+      const files = Array.from(document.getElementById("evidencia").files);
 
-    async function enviarDecision(decision) {
-      const id = document.getElementById("reportId").value;
-      const data = {
-        id,
-        chat_id_supervisor: document.getElementById("chat_id").value,
-        chat_id_tecnico: document.getElementById("chat_tecnico").value,
-        decision,
-        motivo: document.getElementById("motivo").value,
-        fecha: new Date().toISOString()
-      };
+      if (files.length > 6) return alert("Máximo 6 archivos");
 
       try {
-        const { data: existing } = await supabase
-          .from("AprobacionReportes")
-          .select("id")
-          .eq("id", id);
+        const urls = [];
+        for (const f of files) {
+          urls.push(await subirArchivo(f, Correcciones/${id}));
+        }
 
-        const res = existing?.length
-          ? await supabase.from("AprobacionReportes").update(data).eq("id", id)
-          : await supabase.from("AprobacionReportes").insert([data]);
+        const { error } = await supabase.from("CorreccionesReportes").insert([{
+          id,
+          chat_id_tecnico,
+          chat_id_supervisor,
+          correccion,
+          evidencia: urls,
+          fecha_correccion: new Date().toISOString(),
+          notificado: false
+        }]);
 
-        if (res.error) throw res.error;
-
-        document.getElementById("statusMsg").innerText = `✅ Reporte ${decision}`;
-        setTimeout(() => tg.close(), 1200);
+        if (error) throw error;
+        alert("✅ Corrección enviada correctamente");
+        document.getElementById("form").reset();
       } catch (err) {
         console.error(err);
-        document.getElementById("statusMsg").innerText = "❌ Error al enviar a Supabase";
+        alert("❌ Error al enviar a Supabase. Mira la consola.");
       }
-    }
+    });
   </script>
 </body>
-</html>
+</html> 
 
