@@ -115,6 +115,7 @@
       "https://gaiqdzjctyscufkljxvm.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ"
     );
+
     tg.ready();
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -134,11 +135,14 @@
 
       const { data: existing } = await supabase
         .from("AprobacionReportes")
-        .select("*")
-        .eq("id", id);
+        .select("decision")
+        .eq("id", id)
+        .maybeSingle();
 
-      if (existing && existing.length > 0 && existing[0].decision === "aprobar") {
-        document.getElementById("statusMsg").innerText = "✅ Ya aprobado anteriormente.";
+      if (existing?.decision) {
+        document.getElementById("statusMsg").innerText = `✅ Ya fue ${existing.decision}.`;
+        document.getElementById("motivo").disabled = true;
+        document.getElementById("chat_id").disabled = true;
         document.querySelector("button[type='submit']").disabled = true;
         document.querySelector("button.reject").disabled = true;
       }
@@ -182,5 +186,3 @@
   </script>
 </body>
 </html>
-
-
