@@ -6,7 +6,7 @@
   <title>👀 Revisión de Reporte</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg: #faf8f2;
@@ -77,6 +77,12 @@
       cursor: pointer;
     }
     button.reject { background: #dc3545; }
+    #statusMsg {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      text-align: center;
+      color: var(--text);
+    }
   </style>
 </head>
 <body>
@@ -99,6 +105,7 @@
       <input type="hidden" id="chat_tecnico" name="chat_tecnico" />
       <button type="submit">✅ Aprobar</button>
       <button type="button" class="reject" onclick="rechazar()">🔄 Rechazar y reenviar</button>
+      <p id="statusMsg"></p>
     </form>
   </div>
 
@@ -108,10 +115,9 @@
       "https://gaiqdzjctyscufkljxvm.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     );
-
     tg.ready();
 
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       const params = new URLSearchParams(location.search);
       const modoManual = params.get("modo") === "manual";
       const id = params.get("id") || params.get("reportId");
@@ -125,6 +131,17 @@
       document.getElementById("chat_id").readOnly = !modoManual;
 
       document.getElementById("chat_tecnico").value = tecnico;
+
+      const { data: existing } = await supabase
+        .from("AprobacionReportes")
+        .select("*")
+        .eq("id", id);
+
+      if (existing && existing.length > 0 && existing[0].decision === "aprobar") {
+        document.getElementById("statusMsg").innerText = "✅ Ya aprobado anteriormente.";
+        document.querySelector("button[type='submit']").disabled = true;
+        document.querySelector("button.reject").disabled = true;
+      }
     });
 
     async function rechazar() {
@@ -150,20 +167,20 @@
 
       try {
         const { data: existing } = await supabase.from("AprobacionReportes").select("id").eq("id", id);
-
         const res = existing?.length
           ? await supabase.from("AprobacionReportes").update(data).eq("id", id)
           : await supabase.from("AprobacionReportes").insert([data]);
 
         if (res.error) throw res.error;
-        alert(`✅ Reporte ${decision}`);
-        window.close();
+        document.getElementById("statusMsg").innerText = `✅ Reporte ${decision}`;
+        setTimeout(() => tg.close(), 1200);
       } catch (err) {
         console.error(err);
-        alert("❌ Error al enviar a Supabase");
+        document.getElementById("statusMsg").innerText = "❌ Error al enviar a Supabase";
       }
     }
   </script>
 </body>
 </html>
+
 
