@@ -23,7 +23,8 @@
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0; padding: 0;
+      margin: 0;
+      padding: 0;
       background: var(--bg);
       color: var(--text);
       font-family: var(--font-body);
@@ -41,7 +42,12 @@
       animation: fadeIn 0.4s ease;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
-    .logo { display: block; margin: 0 auto 1rem; width: 300px; height: auto; }
+    .logo {
+      display: block;
+      margin: 0 auto 1rem;
+      width: 220px;
+      height: auto;
+    }
     h2 {
       margin: 0 0 1rem;
       font-family: var(--font-heading);
@@ -87,7 +93,7 @@
 </head>
 <body>
   <div class="container">
-    <img src="logo LM mantenimientoverde.png" alt="Logo La Milagresa" class="logo" />
+    <img src="logo LM mantenimiento.png" alt="Logo La Milagresa" class="logo" />
     <h2>👀 Revisión de Reporte</h2>
     <form id="form">
       <div class="form-group">
@@ -115,12 +121,12 @@
       "https://gaiqdzjctyscufkljxvm.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ"
     );
-
     tg.ready();
 
     document.addEventListener("DOMContentLoaded", async () => {
       const params = new URLSearchParams(location.search);
       const modoManual = params.get("modo") === "manual";
+      const fromCorrection = params.get("fromCorrection") === "true";
       const id = params.get("id") || params.get("reportId");
       const tecnico = params.get("chatTecnico") || "";
       const chatId = tg?.initDataUnsafe?.user?.id;
@@ -135,14 +141,16 @@
 
       const { data: existing } = await supabase
         .from("AprobacionReportes")
-        .select("decision")
-        .eq("id", id)
-        .maybeSingle();
+        .select("*")
+        .eq("id", id);
 
-      if (existing?.decision) {
-        document.getElementById("statusMsg").innerText = `✅ Ya fue ${existing.decision}.`;
-        document.getElementById("motivo").disabled = true;
-        document.getElementById("chat_id").disabled = true;
+      if (
+        existing &&
+        existing.length > 0 &&
+        existing[0].decision === "aprobar" &&
+        !fromCorrection
+      ) {
+        document.getElementById("statusMsg").innerText = "✅ Ya aprobado anteriormente.";
         document.querySelector("button[type='submit']").disabled = true;
         document.querySelector("button.reject").disabled = true;
       }
@@ -170,12 +178,17 @@
       };
 
       try {
-        const { data: existing } = await supabase.from("AprobacionReportes").select("id").eq("id", id);
+        const { data: existing } = await supabase
+          .from("AprobacionReportes")
+          .select("id")
+          .eq("id", id);
+
         const res = existing?.length
           ? await supabase.from("AprobacionReportes").update(data).eq("id", id)
           : await supabase.from("AprobacionReportes").insert([data]);
 
         if (res.error) throw res.error;
+
         document.getElementById("statusMsg").innerText = `✅ Reporte ${decision}`;
         setTimeout(() => tg.close(), 1200);
       } catch (err) {
