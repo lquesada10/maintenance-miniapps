@@ -148,15 +148,22 @@
         .eq("id", id);
 
       if (
-        existing &&
-        existing.length > 0 &&
-        (existing[0].decision === "aprobar" || existing[0].decision === "rechazar") &&
-        !fromCorrection
-      ) {
-        document.getElementById("statusMsg").innerText = `✅ Ya se realizó ${existing[0].decision}.`;
-        document.querySelector("button[type='submit']").disabled = true;
-        document.querySelector("button.reject").disabled = true;
-      }
+  existing &&
+  existing.length > 0 &&
+  (existing[0].decision === "aprobar" || existing[0].decision === "rechazar")
+) {
+  if (fromCorrection && !existing[0].correccion_finalizada) {
+    // Permitir solo una vez más, pero marcar que ya se usó
+    await supabase
+      .from("AprobacionReportes")
+      .update({ correccion_finalizada: true })
+      .eq("id", id);
+  } else {
+    document.getElementById("statusMsg").innerText = `✅ Ya se realizó ${existing[0].decision}.`;
+    document.querySelector("button[type='submit']").disabled = true;
+    document.querySelector("button.reject").disabled = true;
+  }
+}
     });
 
     async function rechazar() {
