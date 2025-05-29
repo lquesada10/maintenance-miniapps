@@ -143,39 +143,49 @@
     }
 
     document.getElementById("form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const id = document.getElementById("id").value;
-      const chat_id_tecnico = document.getElementById("chat_id").value;
-      const chat_id_supervisor = document.getElementById("chat_id_supervisor").value;
-      const correccion = document.getElementById("correccion").value;
-      const files = Array.from(document.getElementById("evidencia").files);
+  e.preventDefault();
+  const id = document.getElementById("id").value;
+  const chat_id_tecnico = document.getElementById("chat_id").value;
+  const chat_id_supervisor = document.getElementById("chat_id_supervisor").value;
+  const correccion = document.getElementById("correccion").value;
+  const files = Array.from(document.getElementById("evidencia").files);
 
-      if (files.length > 6) return alert("Máximo 6 archivos");
+  if (files.length > 6) return alert("Máximo 6 archivos");
 
-      try {
-        const urls = [];
-        for (const f of files) {
-          urls.push(await subirArchivo(f, `Correcciones/${id}`));
-        }
+  try {
+    const urls = [];
+    for (const f of files) {
+      urls.push(await subirArchivo(f, `Correcciones/${id}`));
+    }
 
-        const { error } = await supabase.from("CorreccionesReportes").insert([{
-          id,
-          chat_id_tecnico,
-          chat_id_supervisor,
-          correccion,
-          evidencia: urls,
-          fecha_correccion: new Date().toISOString(),
-          notificado: false
-        }]);
+    const dataToSend = {
+      id,
+      chat_id_tecnico,
+      chat_id_supervisor,
+      correccion,
+      evidencia: urls,
+      fecha_correccion: new Date().toISOString(),
+      notificado: false
+    };
 
-        if (error) throw error;
-        alert("✅ Corrección enviada correctamente");
-        document.getElementById("form").reset();
-      } catch (err) {
-        console.error(err);
-        alert("❌ Error al enviar a Supabase. Mira la consola.");
-      }
-    });
+    const { data: existing } = await supabase
+      .from("CorreccionesReportes")
+      .select("id")
+      .eq("id", id);
+
+    const result = existing?.length
+      ? await supabase.from("CorreccionesReportes").update(dataToSend).eq("id", id)
+      : await supabase.from("CorreccionesReportes").insert([dataToSend]);
+
+    if (result.error) throw result.error;
+
+    alert("✅ Corrección enviada correctamente");
+    document.getElementById("form").reset();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error al enviar a Supabase. Mira la consola.");
+  }
+});
   </script>
 </body>
 </html>
