@@ -134,8 +134,8 @@
 
     async function subirArchivo(file, path) {
       const ext = file.name.split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "");
-      const filename = ${crypto.randomUUID()}.${ext};
-      const fullPath = ${path}/${filename};
+      const filename = `${crypto.randomUUID()}.${ext}`;
+      const fullPath = `${path}/${filename}`;
       const { error } = await supabase.storage.from("evidencias").upload(fullPath, file);
       if (error) throw error;
       const { data } = supabase.storage.from("evidencias").getPublicUrl(fullPath);
@@ -155,7 +155,7 @@
       try {
         const urls = [];
         for (const f of files) {
-          urls.push(await subirArchivo(f, Correcciones/${id}));
+          urls.push(await subirArchivo(f, `Correcciones/${id}`));
         }
 
         const { error } = await supabase.from("CorreccionesReportes").insert([{
@@ -178,5 +178,4 @@
     });
   </script>
 </body>
-</html> 
-
+</html>
