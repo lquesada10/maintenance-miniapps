@@ -151,7 +151,7 @@
         (existing[0].decision === "aprobar" || existing[0].decision === "rechazar") &&
         !fromCorrection
       ) {
-        document.getElementById("statusMsg").innerText = `✅ Ya fue ${existing[0].decision}.`;
+        document.getElementById("statusMsg").innerText = `✅ Ya se ${existing[0].decision}.`;
         document.querySelector("button[type='submit']").disabled = true;
         document.querySelector("button.reject").disabled = true;
       }
