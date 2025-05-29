@@ -122,12 +122,14 @@
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ"
     );
 
+    let fromCorrection = false;
+
     tg.ready();
 
     document.addEventListener("DOMContentLoaded", async () => {
       const params = new URLSearchParams(location.search);
       const modoManual = params.get("modo") === "manual";
-      const fromCorrection = params.get("correction") === "true";
+      fromCorrection = params.get("correction") === "true";
       const id = params.get("id") || params.get("reportId");
       const tecnico = params.get("chatTecnico") || "";
       const chatId = tg?.initDataUnsafe?.user?.id;
@@ -151,7 +153,7 @@
         (existing[0].decision === "aprobar" || existing[0].decision === "rechazar") &&
         !fromCorrection
       ) {
-        document.getElementById("statusMsg").innerText = `✅ Ya se realizo ${existing[0].decision}.`;
+        document.getElementById("statusMsg").innerText = `✅ Ya se realizó ${existing[0].decision}.`;
         document.querySelector("button[type='submit']").disabled = true;
         document.querySelector("button.reject").disabled = true;
       }
@@ -190,6 +192,14 @@
 
         if (res.error) throw res.error;
 
+        // 🟢 Si viene de una corrección, se actualiza CorreccionesReportes.notificado a false
+        if (fromCorrection) {
+          await supabase
+            .from("AprobacionReportes")
+            .update({ notificado: false })
+            .eq("id", id);
+        }
+
         document.getElementById("statusMsg").innerText = `✅ Reporte ${decision}`;
         setTimeout(() => tg.close(), 1200);
       } catch (err) {
@@ -200,4 +210,5 @@
   </script>
 </body>
 </html>
+
 
