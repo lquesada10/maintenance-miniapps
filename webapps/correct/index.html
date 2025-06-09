@@ -85,7 +85,7 @@
 </head>
 <body>
   <div class="container">
-    <img src="logo LM mantenimiento.png" alt="Logo La Milagresa" class="logo" />
+    <img src="logo LM mantenimiento.png" alt="Logo LM Mantenimiento" class="logo" />
     <h2>✏️ Corregir Reporte</h2>
     <form id="form">
       <label for="id">ID del Reporte</label>
@@ -108,84 +108,143 @@
   </div>
 
   <script>
+    // inicialización
     const tg = window.Telegram.WebApp;
+    tg.ready();
     const supabase = window.supabase.createClient(
       "https://gaiqdzjctyscufkljxvm.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhaXFkempjdHlzY3Vma2xqeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU1NDUsImV4cCI6MjA2MzY4MTU0NX0._FvgAfqrHVzQtlPpFpPEl6HcGCnOQka2nfhRzT1LUcQ"
     );
 
-    tg.ready();
+    // comprimir imagen a jpeg (max 1024px & calidad 0.7)
+    async function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          let { width, height } = img;
+          const maxDim = 1024;
+          if (width > height && width > maxDim) {
+            height = (height * maxDim) / width;
+            width = maxDim;
+          } else if (height > width && height > maxDim) {
+            width = (width * maxDim) / height;
+            height = maxDim;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            blob => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, { type: blob.type });
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Error al comprimir imagen'));
+              }
+            },
+            'image/jpeg',
+            0.7
+          );
+          URL.revokeObjectURL(url);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Error cargando imagen'));
+        };
+        img.src = url;
+      });
+    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const params = new URLSearchParams(location.search);
-      const modoManual = params.get('modo') === 'manual';
-      const id = params.get('id') || '';
-      const supervisor = params.get('chatSupervisor') || '';
-      const tecnico = tg?.initDataUnsafe?.user?.id || '';
-
-      document.getElementById('id').value = id;
-      document.getElementById('chat_id').value = tecnico;
-      document.getElementById('chat_id_supervisor').value = supervisor;
-
-      document.getElementById('id').readOnly = !modoManual;
-      document.getElementById('chat_id').readOnly = !modoManual;
-      document.getElementById('chat_id_supervisor').readOnly = !modoManual;
-    });
-
-    async function subirArchivo(file, path) {
-      const ext = file.name.split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "");
-      const filename = ${crypto.randomUUID()}.${ext};
-      const fullPath = ${path}/${filename};
-      const { error } = await supabase.storage.from("evidencias").upload(fullPath, file);
+    // sube un archivo a Supabase con chunking de 5MB
+    async function subirArchivo(file, folder) {
+      const ext = file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+      const filename = `${crypto.randomUUID()}.${ext}`;
+      const path = `${folder}/${filename}`;
+      const { error } = await supabase.storage
+        .from('evidencias')
+        .upload(path, file, { chunkSize: 5 * 1024 * 1024 });
       if (error) throw error;
-      const { data } = supabase.storage.from("evidencias").getPublicUrl(fullPath);
+      const { data } = supabase.storage.from('evidencias').getPublicUrl(path);
       return data.publicUrl;
     }
 
-    document.getElementById("form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const id = document.getElementById("id").value;
-  const chat_id_tecnico = document.getElementById("chat_id").value;
-  const chat_id_supervisor = document.getElementById("chat_id_supervisor").value;
-  const correccion = document.getElementById("correccion").value;
-  const files = Array.from(document.getElementById("evidencia").files);
+    // precarga de campos desde queryParams
+    document.addEventListener('DOMContentLoaded', () => {
+      const params       = new URLSearchParams(location.search);
+      const modoManual   = params.get('modo') === 'manual';
+      const id           = params.get('id')            || '';
+      const chatTecParam = params.get('chatTecnico')   || '';
+      const chatSupParam = params.get('chatSupervisor')|| '';
+      const tgUserId     = tg.initDataUnsafe?.user?.id  || '';
 
-  if (files.length > 6) return alert("Máximo 6 archivos");
+      document.getElementById('id').value                  = id;
+      document.getElementById('chat_id').value             = chatTecParam || tgUserId;
+      document.getElementById('chat_id_supervisor').value  = chatSupParam;
 
-  try {
-    const urls = [];
-    for (const f of files) {
-      urls.push(await subirArchivo(f, Correcciones/${id}));
-    }
+      // readonly salvo en modo manual
+      ['id','chat_id','chat_id_supervisor'].forEach(f =>
+        document.getElementById(f).readOnly = !modoManual
+      );
+    });
 
-    const dataToSend = {
-      id,
-      chat_id_tecnico,
-      chat_id_supervisor,
-      correccion,
-      evidencia: urls,
-      fecha_correccion: new Date().toISOString(),
-      notificado: false
-    };
+    // manejo del formulario
+    document.getElementById('form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const id                = document.getElementById('id').value;
+      const chat_id_tecnico   = document.getElementById('chat_id').value;
+      const chat_id_supervisor= document.getElementById('chat_id_supervisor').value;
+      const correccion        = document.getElementById('correccion').value.trim();
+      const files             = Array.from(document.getElementById('evidencia').files);
 
-    const { data: existing } = await supabase
-      .from("CorreccionesReportes")
-      .select("id")
-      .eq("id", id);
+      if (files.length > 6) {
+        return alert('❌ Máximo 6 archivos permitidos');
+      }
 
-    const result = existing?.length
-      ? await supabase.from("CorreccionesReportes").update(dataToSend).eq("id", id)
-      : await supabase.from("CorreccionesReportes").insert([dataToSend]);
+      try {
+        // preparar subidas en paralelo (comprimir imágenes)
+        const uploadTasks = files.map(async f => {
+          let fileToUpload = f;
+          if (f.type.startsWith('image/')) {
+            fileToUpload = await compressImage(f);
+          }
+          return subirArchivo(fileToUpload, `Correcciones/${id}`);
+        });
+        const urls = await Promise.all(uploadTasks);
 
-    if (result.error) throw result.error;
+        // datos a enviar
+        const dataToSend = {
+          id,
+          chat_id_tecnico,
+          chat_id_supervisor,
+          correccion,
+          evidencia: urls,
+          fecha_correccion: new Date().toISOString(),
+          notificado: false
+        };
 
-    alert("✅ Corrección enviada correctamente");
-    document.getElementById("form").reset();
-  } catch (err) {
-    console.error(err);
-    alert("❌ Error al enviar a Supabase. Mira la consola.");
-  }
-});
+        // insertar o actualizar
+        const { data: existing } = await supabase
+          .from('CorreccionesReportes')
+          .select('id')
+          .eq('id', id);
+
+        const result = existing?.length
+          ? await supabase.from('CorreccionesReportes').update(dataToSend).eq('id', id)
+          : await supabase.from('CorreccionesReportes').insert([dataToSend]);
+
+        if (result.error) throw result.error;
+
+        alert('✅ Corrección enviada correctamente');
+        document.getElementById('form').reset();
+      } catch (err) {
+        console.error(err);
+        alert('❌ Error al enviar a Supabase. Revisa la consola.');
+      }
+    });
   </script>
 </body>
 </html>
+
