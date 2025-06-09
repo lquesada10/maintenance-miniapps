@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>✏️ Corregir Reporte</n>
+  <title>✏️ Corregir Reporte</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -130,118 +130,62 @@
       document.getElementById('id').readOnly = !modoManual;
       document.getElementById('chat_id').readOnly = !modoManual;
       document.getElementById('chat_id_supervisor').readOnly = !modoManual;
-
-      // Validación de máximo 6 archivos al seleccionar
-      const evidenciaInput = document.getElementById('evidencia');
-      evidenciaInput.addEventListener('change', () => {
-        if (evidenciaInput.files.length > 6) {
-          alert('Solo puedes subir hasta 6 archivos.');
-          evidenciaInput.value = '';
-        }
-      });
     });
 
-    // 1) Subir resumible por chunk (5MB)
     async function subirArchivo(file, path) {
-      const ext      = file.name.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
-      const filename = `${crypto.randomUUID()}.${ext}`;
-      const fullPath = `${path}/${filename}`;
-
-      const { error } = await supabase.storage
-        .from('evidencias')
-        .upload(fullPath, file, {
-          contentType: file.type,
-          resumable: true,
-          chunkSize: 5 * 1024 * 1024
-        });
+      const ext = file.name.split(".").pop().toLowerCase().replace(/[^a-z0-9]/g, "");
+      const filename = ${crypto.randomUUID()}.${ext};
+      const fullPath = ${path}/${filename};
+      const { error } = await supabase.storage.from("evidencias").upload(fullPath, file);
       if (error) throw error;
-
-      const { data } = supabase.storage.from('evidencias').getPublicUrl(fullPath);
+      const { data } = supabase.storage.from("evidencias").getPublicUrl(fullPath);
       return data.publicUrl;
     }
 
-    // 2) Comprimir imágenes a max 1024px y 70% calidad
-    async function comprimirImagen(file) {
-      return new Promise(resolve => {
-        const img = new Image();
-        img.src = URL.createObjectURL(file);
-        img.onload = () => {
-          let { width, height } = img;
-          const maxDim = 1024;
-          if (width > height && width > maxDim) {
-            height = height * maxDim / width;
-            width  = maxDim;
-          } else if (height > maxDim) {
-            width  = width * maxDim / height;
-            height = maxDim;
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width  = width;
-          canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          canvas.toBlob(blob => {
-            resolve(new File([blob], file.name, { type: file.type }));
-          }, file.type, 0.7);
-        };
-      });
+    document.getElementById("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("id").value;
+  const chat_id_tecnico = document.getElementById("chat_id").value;
+  const chat_id_supervisor = document.getElementById("chat_id_supervisor").value;
+  const correccion = document.getElementById("correccion").value;
+  const files = Array.from(document.getElementById("evidencia").files);
+
+  if (files.length > 6) return alert("Máximo 6 archivos");
+
+  try {
+    const urls = [];
+    for (const f of files) {
+      urls.push(await subirArchivo(f, Correcciones/${id}));
     }
 
-    // Envío del formulario con compresión y subida paralela
-    document.getElementById('form').addEventListener('submit', async e => {
-      e.preventDefault();
-      const id                = document.getElementById('id').value;
-      const chat_id_tecnico   = document.getElementById('chat_id').value;
-      const chat_id_supervisor= document.getElementById('chat_id_supervisor').value;
-      const correccion        = document.getElementById('correccion').value;
-      const files             = Array.from(document.getElementById('evidencia').files);
+    const dataToSend = {
+      id,
+      chat_id_tecnico,
+      chat_id_supervisor,
+      correccion,
+      evidencia: urls,
+      fecha_correccion: new Date().toISOString(),
+      notificado: false
+    };
 
-      if (files.length > 6) {
-        return alert('Máximo 6 archivos');
-      }
+    const { data: existing } = await supabase
+      .from("CorreccionesReportes")
+      .select("id")
+      .eq("id", id);
 
-      // Compresión opcional de imágenes
-      const procesados = await Promise.all(
-        files.map(f =>
-          f.type.startsWith('image/') ? comprimirImagen(f) : Promise.resolve(f)
-        )
-      );
+    const result = existing?.length
+      ? await supabase.from("CorreccionesReportes").update(dataToSend).eq("id", id)
+      : await supabase.from("CorreccionesReportes").insert([dataToSend]);
 
-      try {
-        // Subida paralela de todos los archivos
-        const urls = await Promise.all(
-          procesados.map(f => subirArchivo(f, `Correcciones/${id}`))
-        );
+    if (result.error) throw result.error;
 
-        const dataToSend = {
-          id,
-          chat_id_tecnico,
-          chat_id_supervisor,
-          correccion,
-          evidencia: urls,
-          fecha_correccion: new Date().toISOString(),
-          notificado: false
-        };
-
-        // Inserción o actualización según exista el registro
-        const { data: existing } = await supabase
-          .from('CorreccionesReportes')
-          .select('id')
-          .eq('id', id);
-
-        const result = existing?.length
-          ? await supabase.from('CorreccionesReportes').update(dataToSend).eq('id', id)
-          : await supabase.from('CorreccionesReportes').insert([dataToSend]);
-
-        if (result.error) throw result.error;
-
-        alert('✅ Corrección enviada correctamente');
-        document.getElementById('form').reset();
-      } catch (err) {
-        console.error(err);
-        alert('❌ Error al enviar a Supabase. Mira la consola.');
-      }
-    });
+    alert("✅ Corrección enviada correctamente");
+    document.getElementById("form").reset();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error al enviar a Supabase. Mira la consola.");
+  }
+});
   </script>
 </body>
 </html>
-
